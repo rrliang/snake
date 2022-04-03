@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ncurses.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #define MAIN_WIN_COLOR 1
-void board();
+void initboard();
 void initialize();
 
 int main()
@@ -25,6 +27,7 @@ int main()
     /*  Draw border  */
     box(win, 0, 0);
     wrefresh(win);
+    initboard();
 
     /*  Wait for keypress before ending  */
     initialize();
@@ -66,15 +69,10 @@ void initialize() {
     //endwin();
 }
 
-void board(int y1, int x1, int y2, int x2) {
-    mvhline(y1, x1, 0, '_');
-    mvhline(y2, x1, 0, '_');
-    mvvline(y1, x1, 0, '|');
-    mvvline(y1, x2, 0, '|');
-    mvaddch(y1, x1, ACS_ULCORNER);
-    mvaddch(y2, x1, ACS_LLCORNER);
-    mvaddch(y1, x2, ACS_URCORNER);
-    mvaddch(y2, x2, ACS_LRCORNER);
+void initboard() {
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    int boardArr[w.ws_row][w.ws_col];
 }
 
 struct snakepit {
