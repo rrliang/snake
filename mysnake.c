@@ -48,8 +48,8 @@ void trophygen()
       // Initialization, should only be called once.
     trophyval = 1 + rand() % (9 + 1 - 1);
     // trophyval = rand_interval(0, 9);
-    trophyi = 1 + (rand() % ((maxrow-1)));
-    trophyj = 1 + (rand() % ((maxcol-1)));
+    trophyi = 1 + (rand() % ((maxrow-2)));
+    trophyj = 1 + (rand() % ((maxcol-2)));
     // trophyj = rand_interval(1, maxcol);
     bool inotsame = false;
     bool jnotsame = false;
@@ -66,7 +66,7 @@ void trophygen()
             inotsame = true;
         } else {
             //trophyi = rand_interval(1, maxrow);
-            trophyi = 1 + (rand() % ((maxrow-1)));
+            trophyi = 1 + (rand() % ((maxrow-2)));
     }
     while (jnotsame) {
         bool jsamecurrent = (trophyj != currentj);
@@ -80,7 +80,7 @@ void trophygen()
         if (inotsame && jnotsamebody) {
             jnotsame = true;
         } else {
-            trophyj = 1 + (rand() % ((maxcol-1)));
+            trophyj = 1 + (rand() % ((maxcol-2)));
         }
     }
     }
@@ -115,6 +115,7 @@ void checktrophy() {
         if (snakebodyj == NULL)
             return;
         refresh();
+        printsnakebod();
         trophygen();
         //free(snakebodyi);
         //free(snakebodyj);
