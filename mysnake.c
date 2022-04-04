@@ -30,6 +30,8 @@ int trophyval;
 int winningper;
 bool resize;
 int previoussize;
+int previousi;
+int previousj;
 
 int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
 {
@@ -117,12 +119,20 @@ void checktrophy(WINDOW*win) {
         if (snakebodyj == NULL)
             return;
         int count = 0;
-        for (int i = snakesize-1; i < newsize; i++) {
-            snakebodyi[i] = trophyi+count;
-            snakebodyj[i] = trophyj+count;
-            count++;
+        // for (int i = snakesize-1; i < newsize-1; i++) {
+        //     snakebodyi[i] = trophyi+count;
+        //     snakebodyj[i] = trophyj+count;
+        //     count++;
+        // }
+        for(int i = 0; i < (newsize-1); i++) {
+            {
+                snakebodyi[i]=snakebodyi[i+1];
+                snakebodyj[i]=snakebodyj[i+1];
+            }
         }
-        printsnakebod();
+            snakebodyi[(newsize-1)] = previousi;
+            snakebodyj[(newsize-1)] = previousj;
+        //printsnakebod();
         refresh();
         trophygen();
         previoussize = snakesize;
@@ -189,8 +199,8 @@ int main()
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!";
             break;
         }
-        int previousi = currenti;
-        int previousj = currentj;
+        previousi = currenti;
+        previousj = currentj;
         mvprintw(currenti, currentj, initialize(inputChar));
         
         refresh();
@@ -243,11 +253,10 @@ int main()
 }
 
 void printsnakebod() {
+    refresh();
     for (int i = (snakesize-1); i > 0; i--) {
-        if (snakebodyi[i] != 0 && snakebodyj[i] != 0) {
-            //mvprintw(snakebodyi[i], snakebodyj[i], "o");
-            printw("%d", snakebodyi[i]);
-        }
+        mvprintw(snakebodyi[i], snakebodyj[i], "o");
+            //printw("%d", snakebodyi[i]);
     }
 }
 
