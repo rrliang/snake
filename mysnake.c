@@ -32,6 +32,10 @@ bool resize;
 int previoussize;
 int previousi;
 int previousj;
+int counter = 0;
+int count = 0;
+int previoustrophyi;
+int previoustrophyj;
 
 int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
 {
@@ -42,8 +46,8 @@ int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard
     return select(1, &fds, NULL, NULL, &tv) > 0;
 }
 
-void won() {
-
+bool checkwon() {
+    return (snakesize >= ((maxcol+maxrow)*2)/2);
 }
 
 void trophygen()
@@ -90,49 +94,38 @@ void trophygen()
     }
 }
 
-unsigned int rand_interval(unsigned int min, unsigned int max) //https://stackoverflow.com/questions/2509679/how-to-generate-a-random-integer-number-from-within-a-range
-{
-    int r;
-    const unsigned int range = 1 + max - min;
-    const unsigned int buckets = RAND_MAX / range;
-    const unsigned int limit = buckets * range;
-
-    /* Create equal size buckets all in a row, then fire randomly towards
-     * the buckets until you land in one of them. All buckets are equally
-     * likely. If you land off the end of the line of buckets, try again. */
-    do
-    {
-        r = rand();
-    } while (r >= limit);
-
-    return min + (r / buckets);
-}
-
-void checktrophy(WINDOW*win) {
+void checktrophy() {
     if (currenti == trophyi && currentj == trophyj) {
         //werase(win);
-        int newsize = snakesize += trophyval;
+        int newsize = snakesize + trophyval;
+        previousi = trophyi;
+        previousj = trophyj;
         snakebodyi=realloc(snakebodyi, newsize * sizeof(int));
         if (snakebodyi == NULL)
             return;
         snakebodyj=realloc(snakebodyj, newsize * sizeof(int));
         if (snakebodyj == NULL)
             return;
-        int count = 0;
+        count = 0;
         // for (int i = snakesize-1; i < newsize-1; i++) {
         //     snakebodyi[i] = trophyi+count;
         //     snakebodyj[i] = trophyj+count;
         //     count++;
         // }
-        for(int i = 0; i < (newsize-1); i++) {
-            {
-                snakebodyi[i]=snakebodyi[i+1];
-                snakebodyj[i]=snakebodyj[i+1];
-            }
-        }
-            snakebodyi[(newsize-1)] = previousi;
-            snakebodyj[(newsize-1)] = previousj;
+        // for(int i = 0; i < (newsize-1); i++) {
+        //     {
+        //         snakebodyi[i]=snakebodyi[i+1];
+        //         snakebodyj[i]=snakebodyj[i+1];
+        //     }
+        // }
+        //     snakebodyi[(newsize-1)] = previousi;
+        //     snakebodyj[(newsize-1)] = previousj;
+        //counter = 0;
         //printsnakebod();
+        //currenti = trophyi;
+        //currentj = trophyj;
+        // snakebodyi[(newsize-1)] = trophyi;
+        // snakebodyj[(newsize-1)] = trophyj;
         refresh();
         trophygen();
         previoussize = snakesize;
@@ -178,13 +171,16 @@ int main()
     }
     int i , y = 0;
     bool ranOnce = true;
-    int counter = 0;
     int totcounter = -1;
     previoussize = 0;
     resize = false;
     while (1) {
         werase(win);
         box(win, 0, 0);
+        if(checkwon()) {
+            endingmsg = "YOU WIN!";
+            break;
+        }
         if (totcounter == -1) {
             refresh();
             trophygen();
@@ -193,14 +189,18 @@ int main()
             trophygen();
             totcounter = 0;
         }
+
+
         mvprintw(trophyi, trophyj,"%d",trophyval);
-        checktrophy(win);
+        refresh();
+        
         if (currenti == 0 || currentj == 0 || currenti == maxrow-1 || currentj == maxcol-1) {
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!";
             break;
         }
         previousi = currenti;
         previousj = currentj;
+        checktrophy();
         mvprintw(currenti, currentj, initialize(inputChar));
         
         refresh();
@@ -218,14 +218,22 @@ int main()
             refresh();
         }
                
-        if (counter == (snakesize-2)) {
-            for(i=0; i<(snakesize-1); i++)
+        if (counter == (snakesize-1)) {
+            if (resize ){
+                for (int i = snakesize-1; i < snakesize-1; i++) {
+                    snakebodyi[i] = previoustrophyi;
+                    snakebodyj[i] = previoustrophyj;
+                    count++;
+                }
+            }
+            for(i=0; i<(snakesize); i++)
             {
                 snakebodyi[i]=snakebodyi[i+1];
                 snakebodyj[i]=snakebodyj[i+1];
             }
             snakebodyi[(snakesize-1)] = previousi;
             snakebodyj[(snakesize-1)] = previousj;
+
         } else {
             snakebodyi[counter] = previousi;
             snakebodyj[counter] = previousj;
@@ -233,7 +241,7 @@ int main()
         }
         printsnakebod();
         if (didsnakehitself()) {
-            endingmsg = "YOU LOST BECAUSE YOU HIT YOURSELF!";
+            endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!";
             break;
         }
         refresh();
@@ -253,10 +261,8 @@ int main()
 }
 
 void printsnakebod() {
-    refresh();
     for (int i = (snakesize-1); i > 0; i--) {
         mvprintw(snakebodyi[i], snakebodyj[i], "o");
-            //printw("%d", snakebodyi[i]);
     }
 }
 
@@ -307,6 +313,4 @@ void initboard() {
     snakebodyj = calloc((snakesize-1),(snakesize-1)*sizeof(int *));
     if (snakebodyi == NULL)
         return;
-
-    winningper = (2 * (maxrow + maxcol));
 }
