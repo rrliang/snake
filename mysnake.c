@@ -28,6 +28,8 @@ char* endingmsg;
 int trophyi, trophyj;
 int trophyval;
 int winningper;
+bool resize;
+int previoussize;
 
 int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
 {
@@ -57,7 +59,7 @@ void trophygen()
         bool isamecurrent = (trophyi != currenti);
         bool inotsamebody = true;
         for (int i = 0; i < snakesize-1 ; i++) {
-            if (trophyi == snakebodyi[i]) {
+            if (trophyi == snakebodyi[i] || trophyi >= maxrow) {
                 inotsamebody = false;
                 break;
             }
@@ -72,7 +74,7 @@ void trophygen()
         bool jsamecurrent = (trophyj != currentj);
         bool jnotsamebody = true;
         for (int i = 0; i < snakesize-1 ; i++) {
-            if (trophyj == snakebodyj[i]) {
+            if (trophyj == snakebodyj[i] || trophyj >= maxcol) {
                 jnotsamebody = false;
                 break;
             }
@@ -104,9 +106,9 @@ unsigned int rand_interval(unsigned int min, unsigned int max) //https://stackov
     return min + (r / buckets);
 }
 
-void checktrophy() {
+void checktrophy(WINDOW*win) {
     if (currenti == trophyi && currentj == trophyj) {
-        
+        //werase(win);
         int newsize = snakesize += trophyval;
         snakebodyi=realloc(snakebodyi, newsize * sizeof(int));
         if (snakebodyi == NULL)
@@ -114,11 +116,22 @@ void checktrophy() {
         snakebodyj=realloc(snakebodyj, newsize * sizeof(int));
         if (snakebodyj == NULL)
             return;
-        refresh();
+        int count = 0;
+        for (int i = snakesize-1; i < newsize; i++) {
+            snakebodyi[i] = trophyi+count;
+            snakebodyj[i] = trophyj+count;
+            count++;
+        }
         printsnakebod();
+        refresh();
         trophygen();
+        previoussize = snakesize;
+        snakesize = newsize;
+        resize = true;
         //free(snakebodyi);
         //free(snakebodyj);
+    } else {
+        resize = false;
     }
 }
 
@@ -157,6 +170,8 @@ int main()
     bool ranOnce = true;
     int counter = 0;
     int totcounter = -1;
+    previoussize = 0;
+    resize = false;
     while (1) {
         werase(win);
         box(win, 0, 0);
@@ -169,7 +184,7 @@ int main()
             totcounter = 0;
         }
         mvprintw(trophyi, trophyj,"%d",trophyval);
-        checktrophy();
+        checktrophy(win);
         if (currenti == 0 || currentj == 0 || currenti == maxrow-1 || currentj == maxcol-1) {
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!";
             break;
@@ -212,7 +227,7 @@ int main()
             break;
         }
         refresh();
-        usleep(DELAY-(snakesize*1000));
+        usleep(DELAY- (snakesize * 1000));
         totcounter++;
     }
     werase(win);
@@ -228,9 +243,10 @@ int main()
 }
 
 void printsnakebod() {
-    for (int i = 0; i < (snakesize-1); i++) {
+    for (int i = (snakesize-1); i > 0; i--) {
         if (snakebodyi[i] != 0 && snakebodyj[i] != 0) {
-            mvprintw(snakebodyi[i], snakebodyj[i], "o");
+            //mvprintw(snakebodyi[i], snakebodyj[i], "o");
+            printw("%d", snakebodyi[i]);
         }
     }
 }
@@ -275,11 +291,11 @@ void initboard() {
     currenti = maxrow/2;
     currentj = maxcol/2;
 
-    snakebodyi = malloc((snakesize-1)*sizeof(int *));
+    snakebodyi = calloc((snakesize-1),(snakesize-1)*sizeof(int *));
     if (snakebodyi == NULL)
         return;
     
-    snakebodyj = malloc((snakesize-1)*sizeof(int *));
+    snakebodyj = calloc((snakesize-1),(snakesize-1)*sizeof(int *));
     if (snakebodyi == NULL)
         return;
 
