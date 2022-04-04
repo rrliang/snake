@@ -42,7 +42,6 @@ void trophygen(WINDOW *win)
 {
     werase(win);
     trophyval = rand_interval(0, 9);
-    
     trophyi = rand_interval(1, maxrow);
     trophyj = rand_interval(1, maxcol);
     bool inotsame = false;
@@ -77,7 +76,6 @@ void trophygen(WINDOW *win)
             trophyj = rand_interval(1, maxcol);
         }
     }
-    
     mvprintw(trophyi, trophyj,"%d",trophyval);
     usleep(900000);
 }
@@ -100,11 +98,12 @@ unsigned int rand_interval(unsigned int min, unsigned int max) //https://stackov
     return min + (r / buckets);
 }
 
+
+
 int main()
 {
     // /*  Create and initialize window  */
     initscr();
-    
 
     WINDOW * win;
     win = initscr();
@@ -112,20 +111,14 @@ int main()
     noecho();
     curs_set(FALSE);
     keypad(stdscr, TRUE);
-    // if ( (win = initscr()) == NULL ) {
-    //     fputs("Could not initialize screen.", stderr);
-    //     exit(EXIT_FAILURE);
-    // }
 
     /*  Draw border  */
     initboard();
-    //box(win, 0, 0);
     int inputChar, previousChar = KEY_RIGHT;
     int i , y = 0;
     bool ranOnce = true;
     int counter = 0;
     while (1) {
-        //struct snake snakebody[snakesize];
         werase(win);
         box(win, 0, 0);
         if (currenti == 0 || currentj == 0 || currenti == maxrow || currentj == maxcol) {
@@ -136,12 +129,8 @@ int main()
         int previousj = currentj;
         mvprintw(currenti, currentj, initialize(inputChar));
         
-        
-        //trophygen(win);
         refresh();
             
-        
-        
         if (kbhit()) {
             previousChar = inputChar;
             inputChar = getch();
@@ -174,21 +163,11 @@ int main()
             break;
         }
         refresh();
-        // wrefresh(win);
         usleep(DELAY);
-        // initialize(inputChar, win);
-        // nodelay(win, TRUE);
     }
     werase(win);
     printw("%s",endingmsg);
     getch();
-    
-    
-
-    /*  Wait for keypress before ending  */
-    // initialize(win);
-        
-    // getch();
 
     /*  Clean up and exit  */
     delwin(win);
@@ -217,82 +196,26 @@ bool didsnakehitself(int currenti, int currentj) {
 }
 
 char* initialize(int inputChar) {
-    // initscr();
-	// cbreak();
-	// noecho();
-	// keypad(stdscr, TRUE);
-    // while(inputChar != 'q') {
-        // while (inputChar == KEY_UP) {
-        //     wrefresh(win);
-        //     //printw("%d", currenti);
-        //     printboard('^',win);
-        //     refresh();
-        //     usleep(DELAY);
-        //     currenti -= 1;
-        //     // inputChar = getch();
-        // } 
-        // while (inputChar == KEY_DOWN) {
-        //     wrefresh(win);
-        //     //printw("%d", currenti);
-        //     printboard('v',win);
-        //     refresh();
-        //     usleep(DELAY);
-        //     currenti += 1;
-        //     //inputChar = getch();
-        // }
-        // while(inputChar == KEY_LEFT) {
-        //     wrefresh(win);
-        //     //printw("%d", currentj);
-        //     printboard('<',win);
-        //     refresh();
-        //     usleep(DELAY);
-        //     currentj -= 1;
-        //     //inputChar = getch();
-        // } 
-        // while (inputChar == KEY_RIGHT) {
-        //     wrefresh(win);
-        //     //printw("%d", currentj);
-        //     printboard('>', win);
-        //     usleep(DELAY);
-        //     refresh();
-        //     currentj += 1;
-        //     //inputChar = getch();
-        // }
-        char* c = ">";
-        switch(inputChar) {
-            case KEY_UP:
-                // wrefresh(win);
-                currenti -= 1;
-                //printw("%d", currenti);
-                c = "^";
-                break;
-            case KEY_DOWN:
-                // wrefresh(win);
-                currenti += 1;
-                //printw("%d", currenti);
-                c = "V";
-                break;
-            case KEY_LEFT:
-                // wrefresh(win);
-                currentj -= 1;
-                //printw("%d", currentj);
-                //printboard('<',win);
-                c = "<";
-                break;
-            case KEY_RIGHT:
-                // wrefresh(win);
-                //printw("%d", currentj);
-                currentj += 1;
-                //printboard('>', win);
-                c = ">";
-                break;
-        // }
-        //wrefresh(win);
-        // inputChar = getch();
-        
-        }
-        return c;
-    //endwin();
+    char* c = ">";
+    switch(inputChar) {
+        case KEY_UP:
+            currenti -= 1;
+            c = "^";
+            break;
+        case KEY_DOWN:
+            currenti += 1;
+            c = "V";
+            break;
+        case KEY_LEFT:
+            currentj -= 1;
+            c = "<";
+            break;
+        case KEY_RIGHT:
+            currentj += 1;
+            c = ">";
+            break;
+    }
+    return c;
 }
 
 void initboard() {
@@ -318,7 +241,7 @@ void initboard() {
     if (snakebodyi == NULL)
         return;
 
-    
+    winningper = (2 * (maxrow + maxcol));
 }
 
 void printboard(char c, WINDOW *win) {
@@ -331,30 +254,7 @@ void printboard(char c, WINDOW *win) {
                 printw(" ");
             }
         }
-        //printw("\n");
     }
     box(win, 0, 0);
     wrefresh(win);
-}
-
-struct snakehead {
-    //hold the i and j of the head of the snake
-    //hold the size of the snake
-
-};
-
-struct snake 
-{
-    int i;
-    int j;
-};
-
-struct trophy {
-    //size of trophy
-    //i and j of where the trophy is in the boardarr
-    //how many seconds the trophy has left
-};
-
-void won() {
-
 }
