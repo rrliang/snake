@@ -46,10 +46,10 @@ void trophygen()
 {
 
       // Initialization, should only be called once.
-    trophyval = rand() % (9 + 1 - 1) + 1;
+    trophyval = 1 + rand() % (9 + 1 - 1);
     // trophyval = rand_interval(0, 9);
-    trophyi = rand() % (maxrow-1 + 1 - 1) + 1;
-    trophyj = rand() % (maxcol-1 + 1 - 1) + 1;
+    trophyi = 1 + (rand() % ((maxrow-1)));
+    trophyj = 1 + (rand() % ((maxcol-1)));
     // trophyj = rand_interval(1, maxcol);
     bool inotsame = false;
     bool jnotsame = false;
@@ -66,8 +66,7 @@ void trophygen()
             inotsame = true;
         } else {
             //trophyi = rand_interval(1, maxrow);
-            trophyi = rand() % (maxrow-1 + 1 - 1) + 1;
-        }
+            trophyi = 1 + (rand() % ((maxrow-1)));
     }
     while (jnotsame) {
         bool jsamecurrent = (trophyj != currentj);
@@ -81,8 +80,9 @@ void trophygen()
         if (inotsame && jnotsamebody) {
             jnotsame = true;
         } else {
-            trophyj = rand() % (maxcol-1 + 1 - 1) + 1;
+            trophyj = 1 + (rand() % ((maxcol-1)));
         }
+    }
     }
 }
 
@@ -182,11 +182,11 @@ int main()
         if (kbhit()) {
             previousChar = inputChar;
             inputChar = getch();
-            if ((previousChar == KEY_RIGHT && inputChar == KEY_LEFT) || (previousChar == KEY_LEFT && inputChar == KEY_RIGHT) ||
-                (previousChar == KEY_DOWN && inputChar == KEY_UP) || (previousChar == KEY_UP && inputChar == KEY_DOWN)) {
-                endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!";
-                break;
-            } 
+            // if ((previousChar == KEY_RIGHT && inputChar == KEY_LEFT) || (previousChar == KEY_LEFT && inputChar == KEY_RIGHT) ||
+            //     (previousChar == KEY_DOWN && inputChar == KEY_UP) || (previousChar == KEY_UP && inputChar == KEY_DOWN)) {
+            //     endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!";
+            //     break;
+            // } 
             refresh();
         } else {
             refresh();
@@ -211,7 +211,7 @@ int main()
             break;
         }
         refresh();
-        usleep(DELAY);
+        usleep(DELAY-(snakesize*1000));
         totcounter++;
     }
     werase(win);
@@ -234,7 +234,7 @@ void printsnakebod() {
     }
 }
 
-bool didsnakehitself(int currenti, int currentj) {
+bool didsnakehitself() {
     for (int i = 0; i < (snakesize-1); i++) {
         if (snakebodyi[i] == currenti && snakebodyj[i] == currentj) {
             return true;
