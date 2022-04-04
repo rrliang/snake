@@ -4,7 +4,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <string.h>
-// #include <time.h>
+#include <time.h>
 
 #define MAIN_WIN_COLOR 1
 #define DELAY 100000
@@ -22,7 +22,7 @@ int *snakebodyj;
 int maxrow, maxcol;
 int snakesize = 5;
 int currenti = 1;
-int currentj = 5;
+int currentj = 1;
 bool running = true;
 char* endingmsg;
 int trophyi, trophyj;
@@ -38,12 +38,19 @@ int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard
     return select(1, &fds, NULL, NULL, &tv) > 0;
 }
 
-void trophygen(WINDOW *win)
+void won() {
+
+}
+
+void trophygen()
 {
-    werase(win);
-    trophyval = rand_interval(0, 9);
-    trophyi = rand_interval(1, maxrow);
-    trophyj = rand_interval(1, maxcol);
+
+      // Initialization, should only be called once.
+    trophyval = rand() % (9 + 1 - 1) + 1;
+    // trophyval = rand_interval(0, 9);
+    trophyi = rand() % (maxrow-1 + 1 - 1) + 1;
+    trophyj = rand() % (maxcol-1 + 1 - 1) + 1;
+    // trophyj = rand_interval(1, maxcol);
     bool inotsame = false;
     bool jnotsame = false;
     while (inotsame) {
@@ -58,7 +65,8 @@ void trophygen(WINDOW *win)
         if (inotsame && inotsamebody) {
             inotsame = true;
         } else {
-            trophyi = rand_interval(1, maxrow);
+            //trophyi = rand_interval(1, maxrow);
+            trophyi = rand() % (maxrow-1 + 1 - 1) + 1;
         }
     }
     while (jnotsame) {
@@ -73,11 +81,9 @@ void trophygen(WINDOW *win)
         if (inotsame && jnotsamebody) {
             jnotsame = true;
         } else {
-            trophyj = rand_interval(1, maxcol);
+            trophyj = rand() % (maxcol-1 + 1 - 1) + 1;
         }
     }
-    mvprintw(trophyi, trophyj,"%d",trophyval);
-    usleep(900000);
 }
 
 unsigned int rand_interval(unsigned int min, unsigned int max) //https://stackoverflow.com/questions/2509679/how-to-generate-a-random-integer-number-from-within-a-range
@@ -98,10 +104,26 @@ unsigned int rand_interval(unsigned int min, unsigned int max) //https://stackov
     return min + (r / buckets);
 }
 
-
+void checktrophy() {
+    if (currenti == trophyi && currentj == trophyj) {
+        
+        int newsize = snakesize += trophyval;
+        snakebodyi=realloc(snakebodyi, newsize * sizeof(int));
+        if (snakebodyi == NULL)
+            return;
+        snakebodyj=realloc(snakebodyj, newsize * sizeof(int));
+        if (snakebodyj == NULL)
+            return;
+        refresh();
+        trophygen();
+        //free(snakebodyi);
+        //free(snakebodyj);
+    }
+}
 
 int main()
 {
+    srand(time(NULL)); 
     // /*  Create and initialize window  */
     initscr();
 
@@ -114,14 +136,40 @@ int main()
 
     /*  Draw border  */
     initboard();
-    int inputChar, previousChar = KEY_RIGHT;
+    int inputChar, previousChar = 0;
+    int randomstart = rand() % 4;
+    switch(randomstart) {
+        case 0:
+            inputChar = previousChar = KEY_RIGHT;
+            break;
+        case 1:
+            inputChar = previousChar = KEY_LEFT;
+            break;
+        case 2:
+            inputChar = previousChar = KEY_UP;
+            break;
+        case 3:
+            inputChar = previousChar = KEY_DOWN;
+            break;
+    }
     int i , y = 0;
     bool ranOnce = true;
     int counter = 0;
+    int totcounter = -1;
     while (1) {
         werase(win);
         box(win, 0, 0);
-        if (currenti == 0 || currentj == 0 || currenti == maxrow || currentj == maxcol) {
+        if (totcounter == -1) {
+            refresh();
+            trophygen();
+        } else if (totcounter == rand() % (100-1 + 1 - 10) + 10) {
+            refresh();
+            trophygen();
+            totcounter = 0;
+        }
+        mvprintw(trophyi, trophyj,"%d",trophyval);
+        checktrophy();
+        if (currenti == 0 || currentj == 0 || currenti == maxrow-1 || currentj == maxcol-1) {
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!";
             break;
         }
@@ -164,6 +212,7 @@ int main()
         }
         refresh();
         usleep(DELAY);
+        totcounter++;
     }
     werase(win);
     printw("%s",endingmsg);
@@ -174,7 +223,6 @@ int main()
     endwin();
     refresh();
     
-
     return EXIT_SUCCESS;
 }
 
@@ -223,15 +271,8 @@ void initboard() {
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
     maxrow = w.ws_row;
     maxcol = w.ws_col;
-    boardArr = malloc(maxrow*sizeof(int *));
-    if (boardArr == NULL)
-        return;
-    for (int i = 0; i < maxrow ; i++)
-    {
-        boardArr[i] = malloc(maxcol*sizeof(int));
-        if (boardArr[i] == NULL)
-            return;
-    }
+    currenti = maxrow/2;
+    currentj = maxcol/2;
 
     snakebodyi = malloc((snakesize-1)*sizeof(int *));
     if (snakebodyi == NULL)
@@ -242,19 +283,4 @@ void initboard() {
         return;
 
     winningper = (2 * (maxrow + maxcol));
-}
-
-void printboard(char c, WINDOW *win) {
-    werase(win);
-    for (int i = 0; i < maxrow; i++) {
-        for (int j = 0; j < maxcol; j++) {
-            if (i == currenti && j == currentj) {
-                printw("%c",c);
-            } else {
-                printw(" ");
-            }
-        }
-    }
-    box(win, 0, 0);
-    wrefresh(win);
 }
