@@ -250,16 +250,20 @@ int main()
         usleep(DELAY- (snakesize * 1000));
         totcounter++;
     }
+    free(snakebodyi);
+    free(snakebodyj);
     wattron(win, COLOR_PAIR(2));
     werase(win);
-    printw("%s",endingmsg);
+    box(win,0,0);
+    attron(A_BLINK);
+    mvprintw(maxrow/2,(maxcol/2)-(strlen(endingmsg)/2),endingmsg);
+    refresh();
     getch();
 
     /*  Clean up and exit  */
     delwin(win);
     endwin();
     refresh();
-    
     return EXIT_SUCCESS;
 }
 
