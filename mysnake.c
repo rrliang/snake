@@ -6,17 +6,14 @@
 #include <string.h>
 #include <time.h>
 
-#define MAIN_WIN_COLOR 1
 #define DELAY 100000
 
 void initboard();
 char* initialize(int C);
-void printboard(char c, WINDOW *win);
 void printsnakebod();
 bool didsnakehitself();
-unsigned int rand_interval(unsigned int min, unsigned int max);
 void initsnakebodarrs();
-struct snake;
+
 int **boardArr;
 int *snakebodyi;
 int *snakebodyj;
@@ -24,19 +21,12 @@ int maxrow, maxcol;
 int snakesize = 5;
 int currenti = 1;
 int currentj = 1;
-bool running = true;
-char* endingmsg;
 int trophyi, trophyj;
 int trophyval;
-int winningper;
 bool resize;
-int previoussize;
 int previousi;
 int previousj;
 int counter = 0;
-int count = 0;
-int previoustrophyi;
-int previoustrophyj;
 
 int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
 {
@@ -50,7 +40,6 @@ int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard
 bool checkwon() {
     return (snakesize >= ((maxcol+maxrow)*2)/2); //return true if size of snake is half of the terminal perimeter
 }
-
 
 /* trophy will have a value (1-9), and be randomly generated somewhere in the snakepit*/
 void trophygen()
@@ -101,10 +90,7 @@ void trophygen()
 void checktrophy() {
     if (currenti == trophyi && currentj == trophyj) { //if snake head coords are same as the trophy coords
         int newsize = snakesize + trophyval; //newsize of the snake is original size + value of the trophy
-        
-        // previousi = trophyi;
-        // previousj = trophyj;
-        
+
         /*resize the snakebodyi and snakebodyj arrays to the newsize of the snake*/
         snakebodyi=realloc(snakebodyi, newsize * sizeof(int));
         if (snakebodyi == NULL)
@@ -128,7 +114,6 @@ void checktrophy() {
         refresh();
         trophygen();
         refresh();
-        previoussize = snakesize;
         snakesize = newsize;
         resize = true;
     } else {
@@ -141,7 +126,7 @@ int main()
 {
     /*Random seed so trophy gen is not the same random numbers every time*/
     srand(time(NULL)); 
-
+    char* endingmsg;
     /*  Create and initialize window  */
     initscr();
     WINDOW * win;
@@ -184,7 +169,6 @@ int main()
     init_pair(3, COLOR_YELLOW, COLOR_BLACK);
 
     int totcounter = -1;
-    previoussize = 0;
     resize = false;
     
     /* loop through the rest of the snake game to simulate movement*/
