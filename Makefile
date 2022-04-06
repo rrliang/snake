@@ -4,6 +4,8 @@ TARGET=snakefork
 # all:
 # 	gcc mysnake.c -o mysnake -lncurses
 
+
+# This how you compile the forked version
 all: main.o snake.o
 	gcc -o $(TARGET) main.o snake.o -lncurses
 

@@ -9,16 +9,7 @@
 #define MAIN_WIN_COLOR 1
 #define DELAY 100000
 
-/**
-
-    YES a lot of the functions have WAY too many params
-    If you want to fix it, make the snake a struct and put all the same vars in a struct and initialize it like an object
-    Then it reduces the amount of params in the functions
-
-    Also: the reason why I refactored this is because global vars outside of the main function are exploitable and can lead to memory leaks
-
-*/
-
+// snake struct
 struct Snake {
     int maxrow; 
     int maxcol; 
@@ -37,13 +28,19 @@ struct Snake {
     int previousj;
     int previoustrophyi;
     int previoustrophyj;
+    int counter;
+    int count;
 };
 
 typedef struct Snake snake_t;
 
-
+snake_t* initSnake(); 
 int kbhit();
 void initboard(snake_t* s); 
 bool checkwon(snake_t* s); 
 void printsnakebod(snake_t* s); 
 bool didsnakehitself(); 
+char* initialize(int inputChar, snake_t* s); 
+void initsnakebodarrs(snake_t* s); 
+void trophygen(snake_t* s); 
+void checktrophy(snake_t* s) ; 
