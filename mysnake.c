@@ -95,10 +95,6 @@ void trophygen()
             trophyj = 1 + (rand() % ((maxcol-2)));
         }
     }
-
-    // if (previoustrophyi != 0 && previoustrophyj != 0) {
-    //     mvprintw(previoustrophyi, previoustrophyj, "o");
-    // }
 }
 
 /*this function will check whether or not the snake head has gotten to the trophy*/
@@ -119,9 +115,16 @@ void checktrophy() {
             return;
 
         /*generate a new trophy, refresh the screen, update the size of the snake to the newsize*/
-        count = 0;
-        previoustrophyi = trophyi;
-        previoustrophyj = trophyj;        
+        
+        for(int i=0; i<(snakesize); i++)
+        {
+            snakebodyi[i]=snakebodyi[i+1];
+            snakebodyj[i]=snakebodyj[i+1];
+        }
+        //add the trophy coordinate at the end of the snake body arrays
+        snakebodyi[(snakesize-1)] = currenti;
+        snakebodyj[(snakesize-1)] = currentj;
+       
         refresh();
         trophygen();
         refresh();
@@ -179,9 +182,7 @@ int main()
     init_pair(1, COLOR_GREEN, COLOR_BLACK);
     init_pair(2, COLOR_WHITE, COLOR_BLACK);
     init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-    
-    // int i , y = 0;
-    // bool ranOnce = true;
+
     int totcounter = -1;
     previoussize = 0;
     resize = false;
@@ -191,6 +192,8 @@ int main()
         werase(win); //erase the screen
         wattron(win, COLOR_PAIR(2)); //change the color of the next drawn object to be white with a background of black
         box(win,0,0); //draw a white border
+        //mvprintw(maxrow, 8, "score: %d", snakesize); //print size of snake (score)
+        refresh();
         if(checkwon()) { //check to see if user has won
             endingmsg = "YOU WIN!"; //change the ending message appropriately
             break; //exit the loop
@@ -200,7 +203,7 @@ int main()
             trophygen(); //generate a random trophy
         } else if (totcounter == rand() % (100-1 + 1 - 10) + 10) { //trophy will expire from a random time between 1 and 9 seconds
             refresh(); //refresh the screen
-            trophygen(); //genearte a new random trophy
+            //trophygen(); //generate a new random trophy
             totcounter = 0; //reset the total counter to 0
         }
 
@@ -219,9 +222,10 @@ int main()
         previousj = currentj;
 
         /* check to see if the snake has run into the trophy*/
-        checktrophy();
+        // checktrophy();
 
         wattron(win, COLOR_PAIR(1)); //change the color of the next drawn object to be green with a background of black
+        checktrophy();
         mvprintw(currenti, currentj, initialize(inputChar)); //draw the head of the snake that has been moved
         
         refresh(); //refresh the screen
@@ -239,7 +243,7 @@ int main()
         } else {
             refresh(); //refresh the screen
         }
-
+        
         /* store the previous coordinates (going up to the size of the snakesize) of the snake head into an i and j array for the snake body*/
         if (counter == (snakesize-1)) { //if not the first run (if the snake body arrays have been filled already)
             /* shift everything in the snake body arrays to the left*/
@@ -249,8 +253,10 @@ int main()
                 snakebodyj[i]=snakebodyj[i+1];
             }
             //add the previous coordinate at the end of the snake body arrays
+        
             snakebodyi[(snakesize-1)] = previousi;
             snakebodyj[(snakesize-1)] = previousj;
+            
 
             refresh(); //refresh the screen
 
@@ -296,7 +302,9 @@ int main()
 /* prints the snake body onto screen */
 void printsnakebod() {
     for (int i = (snakesize-1); i > 0; i--) {
-        mvprintw(snakebodyi[i], snakebodyj[i], "o");
+        if (snakebodyi[i] != 0 && snakebodyj[i] != 0) {
+            mvprintw(snakebodyi[i], snakebodyj[i], "o");
+        }
     }
 }
 
@@ -338,7 +346,7 @@ char* initialize(int inputChar) {
 void initboard() {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    maxrow = w.ws_row;
+    maxrow = w.ws_row-1;
     maxcol = w.ws_col;
     currenti = maxrow/2;
     currentj = maxcol/2;
