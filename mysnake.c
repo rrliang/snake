@@ -330,7 +330,7 @@ char* initialize(int inputChar) {
 void initboard() {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    maxrow = w.ws_row-1;
+    maxrow = w.ws_row;
     maxcol = w.ws_col;
     currenti = maxrow/2;
     currentj = maxcol/2;
