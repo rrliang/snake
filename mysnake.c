@@ -11,13 +11,13 @@
 
 void initboard();
 char* initialize(int C);
-void printboard(char c, WINDOW *win);
+//void printboard(char c, WINDOW *win);
 void printsnakebod();
 bool didsnakehitself();
 unsigned int rand_interval(unsigned int min, unsigned int max);
 void initsnakebodarrs();
 struct snake;
-int **boardArr;
+//int **boardArr;
 int *snakebodyi;
 int *snakebodyj;
 int maxrow, maxcol;
@@ -95,10 +95,6 @@ void trophygen()
             trophyj = 1 + (rand() % ((maxcol-2)));
         }
     }
-
-    // if (previoustrophyi != 0 && previoustrophyj != 0) {
-    //     mvprintw(previoustrophyi, previoustrophyj, "o");
-    // }
 }
 
 /*this function will check whether or not the snake head has gotten to the trophy*/
