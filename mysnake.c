@@ -176,7 +176,9 @@ int main()
         werase(win); //erase the screen
         wattron(win, COLOR_PAIR(2)); //change the color of the next drawn object to be white with a background of black
         box(win,0,0); //draw a white border
-        //mvprintw(maxrow, 8, "score: %d", snakesize); //print size of snake (score)
+        move(maxrow,1); //move the cursor near the bottom of the screen to generate a line
+        hline('-', maxcol-2); //make a horizontal line the size of the screen where the cursor is
+        mvprintw(maxrow + 1, maxcol/2-6, "score: %d", snakesize); //print size of snake (score)
         refresh();
         if(checkwon()) { //check to see if user has won
             endingmsg = "YOU WIN!"; //change the ending message appropriately
@@ -237,13 +239,9 @@ int main()
                 snakebodyj[i]=snakebodyj[i+1];
             }
             //add the previous coordinate at the end of the snake body arrays
-        
             snakebodyi[(snakesize-1)] = previousi;
             snakebodyj[(snakesize-1)] = previousj;
-            
-
             refresh(); //refresh the screen
-
         } else { //if the snake body array has not been filled yet
             /* fill up the array with the previous coordinates */
             snakebodyi[counter] = previousi; 
@@ -322,6 +320,9 @@ char* initialize(int inputChar) {
             currentj += 1;
             c = ">"; //if going right, change the snake head to appropriate character
             break;
+        default:
+            break;
+            
     }
     return c;
 }
@@ -330,7 +331,7 @@ char* initialize(int inputChar) {
 void initboard() {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    maxrow = w.ws_row;
+    maxrow = w.ws_row-3;
     maxcol = w.ws_col;
     currenti = maxrow/2;
     currentj = maxcol/2;
