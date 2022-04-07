@@ -1,32 +1,279 @@
+/*
+ ============================================================================
+ Name        : mysnake.c
+ Author      : Rachel Liang
+             : Jiaxin Jiang
+             : Joseph Lumpkin
+ Version     : 1.0
+ Copyright   :
+ Description : An implementation of the classic snake game.
+ ============================================================================
+ */
+
+// Includes
+//****************************
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ncurses.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <time.h>
+#include <unistd.h>
 
-#define DELAY 100000
+// Defines
+//****************************
+/* Game refresh delay tick */
+#define DELAY               100000
 
-void initboard();
-char* initialize(int C);
-void printsnakebod();
-bool didsnakehitself();
-void initsnakebodarrs();
+/* Colors = PRIMARY_BACKGROUND */
+#define COLOR_GREEN_BLACK   1   // Green with black background
+#define COLOR_WHITE_BLACK   2   // White with black background
+#define COLOR_YELLOW_BLACK  3   // Yellow with black background
 
-int **boardArr;
-int *snakebodyi;
-int *snakebodyj;
-int maxrow, maxcol;
-int snakesize = 5;
-int currenti = 1;
-int currentj = 1;
-int trophyi, trophyj;
-int trophyval;
-bool resize;
-int previousi;
-int previousj;
-int counter = 0;
+/* Game driver loop test (Infinite) */
+#define ACTIVE              1
+
+// Prototype Functions
+//****************************
+void    checktrophy();
+bool    checkwon();
+bool    didsnakehitself();
+void    initboard();
+char*   initialize(int C);
+void    initsnakebodarrs();
+int     kbhit();
+void    printsnakebod();
+void    trophygen();
+
+
+// Global Variables
+//****************************
+/* Snake Attributes */
+int currenti = 1;       // Current snake head y value
+int currentj = 1;       // Current snake head x value
+int previousi;          // Previous y value for the snake head
+int previousj;          // Previous x value for the snake head
+int *snakebodyi;        // Snake body y values : index = distance from head, value = grid coord
+int *snakebodyj;        // Snake body x values : index = distance from head, value = grid coord
+int snakesize = 5;      // Current size of the snake (Player score)
+int counter;            // Current snake body refresh index
+
+/* Window Attributes */
+int maxrow;             // Maximum number of rows in the game grid
+int maxcol;             // Maximum number of columns in the game grid
+bool resize;            // Window resizable flag
+
+/* Trophy Attributes */
+int trophyi;            // Trophy y value
+int trophyj;            // Trophy x value
+int trophyval;          // Trophy score value
+
+
+/**
+ * Snake game driver.
+ * This contains the game's main loop function
+ * and drives the game.
+ *
+ * @author Rachel Liang
+ *
+ * @param ac    - Number of arguments passed to the main function
+ * @param av    - Array of additional arguments passed to the game
+ */
+int main(int ac, char *av[])
+{
+    // Seed the rand() function using the current system time
+    srand(time(NULL)); 
+    // Gameplay ending message
+    // This is displayed to user upon game completion    
+    char* endingmsg;
+    
+    // Create and initialize ncurses window
+    WINDOW * win;           // ncurses window struct
+    win = initscr();        // Initialize ncurses's window
+    cbreak();               // Break when ctrl ^ c is pressed
+    noecho();               // Disable terminal echoing
+    curs_set(FALSE);        // Hide text cursor
+    keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
+    initboard();            // Obtain terminal size and initialize window size values
+    initsnakebodarrs();     // Initialize player snake values
+    
+    // Initialize the snake head
+    int inputChar, previousChar = 0;
+    // Generate an initial snake direction
+    int randomstart = rand() % 4;
+    // Translate random int to direction
+    switch(randomstart) {
+        case 0:
+            inputChar = previousChar = KEY_RIGHT;   // Snake faces right
+            break;
+        case 1:
+            inputChar = previousChar = KEY_LEFT;    // Snake faces left
+            break;
+        case 2:
+            inputChar = previousChar = KEY_UP;      // Snake faces up
+            break;
+        case 3:
+            inputChar = previousChar = KEY_DOWN;    // Snake faces down
+            break;
+    }
+
+    // If the current terminal does NOT support colored text
+    if(has_colors() == FALSE)
+    {
+        // Inform the user and abort
+        printf("Your terminal does not support color\n");
+        printf("Aborting %s...\n", av[0]);
+        exit(1);
+    }
+
+    // Initialize color pairs (PRIMARY, BACKGROUND)
+    start_color();  // Enable the usage of colors
+    init_pair(COLOR_GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);     // Green with black background
+    init_pair(COLOR_WHITE_BLACK, COLOR_WHITE, COLOR_BLACK);     // White with black background
+    init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
+
+    // Generate an initial trophy
+    trophygen();
+    // Initialize a trophy expiration accumulation timer
+    int totcounter = 0;
+    int totcountertimeout = rand() % 90;
+    
+    // Main snake game loop
+    while (ACTIVE) {
+        // Draw game borders
+        werase(win);                                    // Erase the screen
+        wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
+        box(win,0,0);                                   // Draw a white border
+        move(maxrow,1);                                 // Move the cursor near the bottom of the screen
+        hline('-', maxcol-2);                           // Make a horizontal screen divisor
+        
+        // Print the current score
+        mvprintw
+        (
+            maxrow + 1,             // Bottom of the screen
+            maxcol/2 - 6,           // Centered horizontally
+            "score: %d", snakesize  // Size of snake (score)
+        );
+
+        // Check to see if user has won
+        if(checkwon()) {
+            endingmsg = "YOU WIN!"; // Change the ending message appropriately
+            break;                  // Exit the loop
+        }
+
+        // If the trophy has expired
+        if (totcounter > totcountertimeout) {
+            trophygen();                            // Generate a new random trophy
+            totcounter = 0;                         // Reset the trophy expiration accumulator
+            int totcountertimeout = rand() % 90;    // Generate a new random timeout
+        }
+
+        // Print the trophy to the screen        
+        wattron(win, COLOR_PAIR(COLOR_YELLOW_BLACK));   // Set the color of the trophy
+        mvprintw
+        (
+            trophyi,    // The trophy's y coord
+            trophyj,    // The trophy's x coord
+            "%d",       // The trophy
+            trophyval   // Value of the trophy
+        );
+        
+        // If user ran into the border
+        if (currenti == 0 || currentj == 0 || currenti == maxrow-1 || currentj == maxcol-1) {
+            endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!";    // Change the ending message appropriately
+            break;  // Exit the loop
+        }
+
+        // Store the previous coords of the snake head
+        previousi = currenti;
+        previousj = currentj;
+
+        // Check to see if the snake has run into the trophy
+        checktrophy();
+
+        // Print the snake head
+        wattron(win, COLOR_PAIR(COLOR_GREEN_BLACK));    // Change the color of the next drawn object
+        mvprintw
+        (
+            currenti,               // Current snake head y coord
+            currentj,               // Current snake head x coord
+            initialize(inputChar)   // Snake head
+        );
+
+        // If the user presses any button
+        if (kbhit()) {
+            previousChar = inputChar;   // Store the previous keypress/direction
+            inputChar = getch();        // Grab the new keypress/snake head
+            // If the new direction is directly opposite of the previous direction, user loses
+            if ((previousChar == KEY_RIGHT && inputChar == KEY_LEFT) || (previousChar == KEY_LEFT && inputChar == KEY_RIGHT) ||
+                (previousChar == KEY_DOWN && inputChar == KEY_UP) || (previousChar == KEY_UP && inputChar == KEY_DOWN)) {
+                endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; // Change ending message appropriately
+                break; // Leave the loop, ending the game
+            }
+        }
+        
+        // If the snake body is fully grown (Shows all body segments on screen)
+        if (counter == (snakesize-1)) {
+            // Move the snake body forward without growth
+            for(int i=0; i<(snakesize); i++)
+            {
+                // Shift body values left in their arrays
+                snakebodyi[i]=snakebodyi[i+1];
+                snakebodyj[i]=snakebodyj[i+1];
+            }
+            // Add the previous snake head coordinate at the end of the snake body arrays
+            snakebodyi[(snakesize-1)] = previousi;
+            snakebodyj[(snakesize-1)] = previousj;
+        }
+        // Else the snake body array has not been filled yet
+        else
+        {
+            // Grow the snake by filling up the array with the previous coordinates one at a time
+            snakebodyi[counter] = previousi;
+            snakebodyj[counter] = previousj;
+            counter++;  // Increment snake size counter
+        }
+        
+        // Print the snake body
+        printsnakebod();
+
+        // If the snake has run into itself
+        if (didsnakehitself()) {
+            endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; // Change the ending message appropriately
+            break; // Leave the loop
+        }
+
+        refresh(); // Refresh the screen
+        usleep(DELAY- (snakesize * 1000)); // The speed of the snake movement (the delay between each loop)
+        totcounter++; // Add to the total counter (used in the trophy gen)
+    }
+    
+    // Free the snake body arrays in memory
+    free(snakebodyi);
+    free(snakebodyj);
+
+    werase(win);                                    // Erase the screen
+    wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
+    box(win,0,0);                                   // Draw a white border
+    attron(A_BLINK);                                // Blink the next drawn thing on the terminal screen
+
+    // Prepare the ending message
+    mvprintw
+    (
+        maxrow/2,                                   // Center vertically
+        (maxcol/2)-(strlen(endingmsg)/2),           // Center horizontally
+        endingmsg                                   // Message to display
+    );  
+    refresh();                                      // Refresh the screen to display the ending message
+    getch();                                        // Wait for the user to press any key to exit
+
+    // Clean up and exit
+    delwin(win);
+    endwin();
+    refresh();
+    return EXIT_SUCCESS;
+}
+
 
 int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
 {
@@ -122,164 +369,6 @@ void checktrophy() {
     }
 }
 
-int main()
-{
-    /*Random seed so trophy gen is not the same random numbers every time*/
-    srand(time(NULL)); 
-    char* endingmsg;
-    /*  Create and initialize window  */
-    initscr();
-    WINDOW * win;
-    win = initscr();
-    cbreak(); //break when ctrl ^ c is pressed
-    noecho(); //don't show any commands given by user
-    curs_set(FALSE); //no curser
-    keypad(stdscr, TRUE); //keypad is going to be used
-
-    /*  Draw border  */
-    initboard(); //get the max rows and cols of the terminal screen
-    initsnakebodarrs(); //re-size the snake body arrays with the actual size of the snake body at this time
-    int inputChar, previousChar = 0;
-    int randomstart = rand() % 4; //generate a random number 0-3 to see which direction the snake goes at initialization
-    /* 0 = start going right, 1 = start going left, 2 = start going up, 3 = start going down */
-    switch(randomstart) {
-        case 0:
-            inputChar = previousChar = KEY_RIGHT;
-            break;
-        case 1:
-            inputChar = previousChar = KEY_LEFT;
-            break;
-        case 2:
-            inputChar = previousChar = KEY_UP;
-            break;
-        case 3:
-            inputChar = previousChar = KEY_DOWN;
-            break;
-    }
-    /* Check if terminal can display colors (google terminal is able) */
-    if(has_colors() == FALSE)
-    {
-        printf("Your terminal does not support color\n");
-        exit(1);
-    }
-    /* initialize color pairs where all backgrounds are black but any object using this color pair will appear either green (1), white (2), or yellow(3)*/
-    start_color();
-    init_pair(1, COLOR_GREEN, COLOR_BLACK);
-    init_pair(2, COLOR_WHITE, COLOR_BLACK);
-    init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-
-    int totcounter = -1;
-    resize = false;
-    
-    /* loop through the rest of the snake game to simulate movement*/
-    while (1) {
-        werase(win); //erase the screen
-        wattron(win, COLOR_PAIR(2)); //change the color of the next drawn object to be white with a background of black
-        box(win,0,0); //draw a white border
-        move(maxrow,1); //move the cursor near the bottom of the screen to generate a line
-        hline('-', maxcol-2); //make a horizontal line the size of the screen where the cursor is
-        mvprintw(maxrow + 1, maxcol/2-6, "score: %d", snakesize); //print size of snake (score)
-        refresh();
-        if(checkwon()) { //check to see if user has won
-            endingmsg = "YOU WIN!"; //change the ending message appropriately
-            break; //exit the loop
-        }
-        if (totcounter == -1) { //if it is the first loop
-            refresh(); //refresh the screen
-            trophygen(); //generate a random trophy
-        } else if (totcounter == rand() % (100-1 + 1 - 10) + 10) { //trophy will expire from a random time between 1 and 9 seconds
-            refresh(); //refresh the screen
-            //trophygen(); //generate a new random trophy
-            totcounter = 0; //reset the total counter to 0
-        }
-
-        wattron(win, COLOR_PAIR(3)); //set the color of the next drawn object to be yellow with a background of black
-        mvprintw(trophyi, trophyj,"%d",trophyval); //set the color of the trophy to yellow
-        refresh(); //refresh the screen
-        
-        /* check to see if user ran into the border */
-        if (currenti == 0 || currentj == 0 || currenti == maxrow-1 || currentj == maxcol-1) {
-            endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!"; //change the ending message appropriately
-            break; //exit the loop
-        }
-
-        /* store the previous coords of the snake head*/
-        previousi = currenti;
-        previousj = currentj;
-
-        /* check to see if the snake has run into the trophy*/
-        // checktrophy();
-
-        wattron(win, COLOR_PAIR(1)); //change the color of the next drawn object to be green with a background of black
-        checktrophy();
-        mvprintw(currenti, currentj, initialize(inputChar)); //draw the head of the snake that has been moved
-        
-        refresh(); //refresh the screen
-            
-        if (kbhit()) { //if the user presses any button, otherwise just keep looping/moving in current direction
-            previousChar = inputChar; //store the previous keypress/direction
-            inputChar = getch(); //grab the new keypress
-            /* if the new direction is directly opposite of the previous direction, user loses*/
-            if ((previousChar == KEY_RIGHT && inputChar == KEY_LEFT) || (previousChar == KEY_LEFT && inputChar == KEY_RIGHT) ||
-                (previousChar == KEY_DOWN && inputChar == KEY_UP) || (previousChar == KEY_UP && inputChar == KEY_DOWN)) {
-                endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; //change ending message appropriately
-                break; //leave the loop
-            } 
-            refresh(); //refresh the screen
-        } else {
-            refresh(); //refresh the screen
-        }
-        
-        /* store the previous coordinates (going up to the size of the snakesize) of the snake head into an i and j array for the snake body*/
-        if (counter == (snakesize-1)) { //if not the first run (if the snake body arrays have been filled already)
-            /* shift everything in the snake body arrays to the left*/
-            for(int i=0; i<(snakesize); i++)
-            {
-                snakebodyi[i]=snakebodyi[i+1];
-                snakebodyj[i]=snakebodyj[i+1];
-            }
-            //add the previous coordinate at the end of the snake body arrays
-            snakebodyi[(snakesize-1)] = previousi;
-            snakebodyj[(snakesize-1)] = previousj;
-            refresh(); //refresh the screen
-        } else { //if the snake body array has not been filled yet
-            /* fill up the array with the previous coordinates */
-            snakebodyi[counter] = previousi; 
-            snakebodyj[counter] = previousj;
-            counter++; //add to a counter of which this if statement is reading from
-            refresh(); //refresh the screen
-        }
-        
-        printsnakebod(); //print the snake body
-        /* Check to see if the snake has run into itself */
-        if (didsnakehitself()) {
-            endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; //change the ending message appropriately
-            break; //leave the loop
-        }
-
-        refresh(); //refresh the screen
-        usleep(DELAY- (snakesize * 1000)); //the speed of the snake movement (the delay between each loop)
-        totcounter++; //add to the total counter (used in the trophy gen)
-    }
-    
-    /* Free the snake body arrays in memory */
-    free(snakebodyi);
-    free(snakebodyj);
-
-    werase(win); //erase the screen
-    wattron(win, COLOR_PAIR(2)); //change the color of the next drawn object to be white with a background of black
-    box(win,0,0); //draw a white border
-    attron(A_BLINK); //change the next drawn thing to be blinking on the terminal screen
-    mvprintw(maxrow/2,(maxcol/2)-(strlen(endingmsg)/2),endingmsg); //print the message in the middle of the screen
-    refresh(); //refresh the screen
-    getch(); //read the next character
-
-    /*  Clean up and exit  */
-    delwin(win);
-    endwin();
-    refresh();
-    return EXIT_SUCCESS;
-}
 
 /* prints the snake body onto screen */
 void printsnakebod() {
