@@ -68,6 +68,7 @@ bool resize;            // Window resizable flag
 int trophyi;            // Trophy y value
 int trophyj;            // Trophy x value
 int trophyval;          // Trophy score value
+int inputChar, previousChar, lastvalidChar = 0;
 
 
 /**
@@ -139,7 +140,7 @@ int startsnakegame() {
     initsnakebodarrs();     // Initialize player snake values
     
     // Initialize the snake head
-    int inputChar, previousChar = 0;
+    // int inputChar, previousChar = 0;
     // Generate an initial snake direction
     int randomstart = rand() % 4;
     // Translate random int to direction
@@ -236,6 +237,7 @@ int startsnakegame() {
                 endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; // Change ending message appropriately
                 break; // Leave the loop, ending the game
             }
+        
         }
         
         // If the snake body is fully grown (Shows all body segments on screen)
@@ -447,21 +449,43 @@ char* initialize(int inputChar) {
         case KEY_UP:
             currenti -= 1;
             c = "^"; //if going up, change the snake head to appropriate character
+            lastvalidChar = inputChar;
             break;
         case KEY_DOWN:
             currenti += 1;
             c = "V"; //if going down, change the snake head to appropriate character
+            lastvalidChar = inputChar;
             break;
         case KEY_LEFT:
             currentj -= 1;
             c = "<"; //if going left, change the snake head to appropriate character
+            lastvalidChar = inputChar;
             break;
         case KEY_RIGHT:
             currentj += 1;
             c = ">"; //if going right, change the snake head to appropriate character
+            lastvalidChar = inputChar;
             break;
         default:
-            break;
+            switch(lastvalidChar) {
+                case KEY_UP:
+                    currenti -= 1;
+                    c = "^"; //if going up, change the snake head to appropriate character
+                    break;
+                case KEY_DOWN:
+                    currenti += 1;
+                    c = "V"; //if going down, change the snake head to appropriate character
+                    break;
+                case KEY_LEFT:
+                    currentj -= 1;
+                    c = "<"; //if going left, change the snake head to appropriate character
+                    break;
+                case KEY_RIGHT:
+                    currentj += 1;
+                    c = ">"; //if going right, change the snake head to appropriate character
+                    break;
+        }
+            
             
     }
     return c;
