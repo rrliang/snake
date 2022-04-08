@@ -44,6 +44,7 @@ void    initsnakebodarrs();
 int     kbhit();
 void    printsnakebod();
 void    trophygen();
+int     startsnakegame();
 
 
 // Global Variables
@@ -79,8 +80,48 @@ int trophyval;          // Trophy score value
  * @param ac    - Number of arguments passed to the main function
  * @param av    - Array of additional arguments passed to the game
  */
-int main(int ac, char *av[])
-{
+int main(int argc, char **argv) {
+    initscr();
+    noecho();
+    curs_set(0);
+    int yMax, xMax;
+    getmaxyx(stdscr,yMax,xMax);
+    WINDOW *win = newwin(yMax/2,xMax/2,yMax/4,xMax/4);
+    // If the current terminal does NOT support colored text
+    if(has_colors() == FALSE)
+    {
+        // Inform the user and abort
+        printf("Your terminal does not support color\n");
+        printf("Aborting %s...\n", argv[0]);
+        exit(1);
+    }
+
+    // Initialize color pairs (PRIMARY, BACKGROUND)
+    start_color();  // Enable the usage of colors
+    init_pair(COLOR_GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);     // Green with black background
+    init_pair(COLOR_WHITE_BLACK, COLOR_WHITE, COLOR_BLACK);     // White with black background
+    init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
+    box(win,0,0);
+    mvwprintw(win, 8-2, 20, "=====Start Game: Press s or S=====");
+    mvwprintw(win, 10-2, 20, "======Exit Game: Press Ctrl+C=====");
+    char ch = wgetch(win);
+    while(ch){
+        switch (ch) {
+            case 's'|'S':
+                startsnakegame();
+                break;
+            default:
+                ch = wgetch(win);
+                break;
+        }
+    }
+    
+    endwin();
+    return 0;
+}
+
+
+int startsnakegame() {
     // Seed the rand() function using the current system time
     srand(time(NULL)); 
     // Gameplay ending message
@@ -116,21 +157,6 @@ int main(int ac, char *av[])
             inputChar = previousChar = KEY_DOWN;    // Snake faces down
             break;
     }
-
-    // If the current terminal does NOT support colored text
-    if(has_colors() == FALSE)
-    {
-        // Inform the user and abort
-        printf("Your terminal does not support color\n");
-        printf("Aborting %s...\n", av[0]);
-        exit(1);
-    }
-
-    // Initialize color pairs (PRIMARY, BACKGROUND)
-    start_color();  // Enable the usage of colors
-    init_pair(COLOR_GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);     // Green with black background
-    init_pair(COLOR_WHITE_BLACK, COLOR_WHITE, COLOR_BLACK);     // White with black background
-    init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
 
     // Generate an initial trophy
     trophygen();
@@ -179,7 +205,7 @@ int main(int ac, char *av[])
         );
         
         // If user ran into the border
-        if (currenti == 0 || currentj == 0 || currenti == maxrow-1 || currentj == maxcol-1) {
+        if (currenti == 0 || currentj == 0 || currenti == maxrow || currentj == maxcol-1) {
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!";    // Change the ending message appropriately
             break;  // Exit the loop
         }
@@ -257,13 +283,38 @@ int main(int ac, char *av[])
     box(win,0,0);                                   // Draw a white border
     attron(A_BLINK);                                // Blink the next drawn thing on the terminal screen
 
-    // Prepare the ending message
+   // Prepare the ending message
     mvprintw
     (
-        maxrow/2,                                   // Center vertically
+        maxrow/2-2,                                   // Center vertically
         (maxcol/2)-(strlen(endingmsg)/2),           // Center horizontally
         endingmsg                                   // Message to display
-    );  
+    ); 
+
+    mvprintw
+    (
+        maxrow/2+2-2,                                   // Center vertically
+        (maxcol/2)-(14/2),           // Center horizontally
+        "Your score: %d",snakesize                                   // display score
+    );     
+
+    mvprintw(maxrow/2+4-2, (maxcol/2)-(strlen(endingmsg)/2), "=====Do you want to start again?=====");
+    mvprintw(maxrow/2+6-2, (maxcol/2)-(strlen(endingmsg)/2), "===== Start Game: Press s or S =====");
+    mvprintw(maxrow/2+8-2, (maxcol/2)-(strlen(endingmsg)/2), "====== Exit Game: Press Ctrl+C =====");
+
+    char ch = wgetch(win);
+    while(ch){
+        switch (ch) {
+            case 's'|'S':
+                snakesize = 5;
+                startsnakegame();
+                break;
+            default:
+                ch = wgetch(win);
+                break;
+               
+        }
+    } 
     refresh();                                      // Refresh the screen to display the ending message
     getch();                                        // Wait for the user to press any key to exit
 
