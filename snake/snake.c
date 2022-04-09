@@ -4,7 +4,7 @@
 #include <ncurses.h>
 
 #include "../trophy/trophy.h"
-#include "../debug/snake_debug.h"
+#include "../debug/debug.h"
 
 int snake_size;     // Current size of the snake (Player score)
 int current_i;      // Current snake head y value
@@ -24,11 +24,9 @@ void snake_grow() {
     snakebodyi=realloc(snakebodyi, newsize * sizeof(int));
     if (snakebodyi == NULL)
         return;
-    
     snakebodyj=realloc(snakebodyj, newsize * sizeof(int));
     if (snakebodyj == NULL)
         return;
-    
     for(int i=0; i<(snake_size); i++)
     {
         snakebodyi[i]=snakebodyi[i+1];
@@ -46,7 +44,7 @@ void snake_move() {
     // If the snake body is fully grown (Shows all body segments on screen)
         if (counter == (snake_size-1)) {
             // Move the snake body forward without growth
-            for(int i=0; i<(snake_size); i++)
+            for(int i=0; i<snake_size; i++)
             {
                 // Shift body values left in their arrays
                 snakebodyi[i]=snakebodyi[i+1];
@@ -90,7 +88,7 @@ bool snake_did_snake_hit_self() {
 
 
 /* initialize the snakebody arrays */
-void initsnakebodarrs() {
+void snake_init() {
     snakebodyi = malloc(snake_size * sizeof(int));
     if (snakebodyi == NULL)
         return;

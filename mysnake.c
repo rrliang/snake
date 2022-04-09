@@ -22,7 +22,7 @@
 #include <stdbool.h>
 
 // Project Includes
-#include "debug/snake_debug.h"
+#include "debug/debug.h"
 #include "snake/snake.h"
 #include "trophy/trophy.h"
 
@@ -42,15 +42,10 @@
 
 // Prototype Functions
 //****************************
-// void    checktrophy();
 bool    checkwon();
-// bool    didsnakehitself();
 void    initboard();
 char*   initialize(int C);
-// void    initsnakebodarrs();
 int     kbhit();
-// void    printsnakebod();
-// void    trophygen();
 int     startsnakegame();
 
 
@@ -87,6 +82,7 @@ int inputChar, previousChar, lastvalidChar = 0;
  * @param av    - Array of additional arguments passed to the game
  */
 int main(int argc, char **argv) {
+    debug_clear_log();
     initscr();
     noecho();
     curs_set(0);
@@ -143,7 +139,7 @@ int startsnakegame() {
     curs_set(FALSE);        // Hide text cursor
     keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
     initboard();            // Obtain terminal size and initialize window size values
-    initsnakebodarrs();     // Initialize player snake values
+    snake_init();     // Initialize player snake values
     
     // Initialize the snake head
     // int inputChar, previousChar = 0;
@@ -322,17 +318,6 @@ int startsnakegame() {
     return EXIT_SUCCESS;
 }
 
-// void reinitialize() {
-//     counter = 0;
-//     snakebodyi=realloc(snakebodyi, snakesize * sizeof(int));
-//         if (snakebodyi == NULL)
-//             return;
-        
-//         snakebodyj=realloc(snakebodyj, snakesize * sizeof(int));
-//         if (snakebodyj == NULL)
-//             return;
-// }
-
 
 int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
 {
@@ -343,113 +328,12 @@ int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard
     return select(1, &fds, NULL, NULL, &tv) > 0;
 }
 
+
 bool checkwon() {
     // Return true if size of snake is half of the terminal perimeter
     return (snake_get_size() >= (maxcol + maxrow));
 }
 
-// /* trophy will have a value (1-9), and be randomly generated somewhere in the snakepit*/
-// void trophygen()
-// {
-//     trophyval = 1 + rand() % (9 + 1 - 1); //generate a random number from range of 1-9
-//     trophyi = 1 + (rand() % ((maxrow-2))); //generate a random number for the x coordinate of the trophy from range of 1 to (horizontal length of terminal-1)
-//     trophyj = 1 + (rand() % ((maxcol-2))); //generate a random number for the y coordinate of the trophy from range of 1 to (vertical length of terminal-1)
-    
-//     /* check if randomly generated trophy coordinates clash with existing snake head and body
-//        if yes, regenerate the random coordinate, otherwise exit loop */
-    
-//     bool inotsame = false;
-//     bool jnotsame = false;
-//     while (inotsame) {
-//         bool isamecurrent = (trophyi != currenti); //random x coord for trophy does not clash with snake head
-//         bool inotsamebody = true;
-//         for (int i = 0; i < snakesize-1 ; i++) {
-//             if (trophyi == snakebodyi[i] || trophyi >= maxrow) { //random x coord for trophy is not part of the snake body
-//                 inotsamebody = false;
-//                 break;
-//             }
-//         }
-//         if (inotsame && inotsamebody) { 
-//             inotsame = true;
-//         } else {
-//             trophyi = 1 + (rand() % ((maxrow-2))); 
-//         }
-//     }
-
-//     while (jnotsame) {
-//         bool jsamecurrent = (trophyj != currentj); //random y coord for trophy does not clash with snake head
-//         bool jnotsamebody = true;
-//         for (int i = 0; i < snakesize-1 ; i++) {
-//             if (trophyj == snakebodyj[i] || trophyj >= maxcol) { //random y coord for trophy is not part of the snake body
-//                 jnotsamebody = false;
-//                 break;
-//             }
-//         }
-//         if (jnotsame && jnotsamebody) {
-//             jnotsame = true;
-//         } else {
-//             trophyj = 1 + (rand() % ((maxcol-2)));
-//         }
-//     }
-// }
-
-/*this function will check whether or not the snake head has gotten to the trophy*/
-// void checktrophy() {
-//     if (currenti == trophyi && currentj == trophyj) { //if snake head coords are same as the trophy coords
-//         int newsize = snakesize + trophyval; //newsize of the snake is original size + value of the trophy
-
-//         /*resize the snakebodyi and snakebodyj arrays to the newsize of the snake*/
-//         snakebodyi=realloc(snakebodyi, newsize * sizeof(int));
-//         if (snakebodyi == NULL)
-//             return;
-        
-//         snakebodyj=realloc(snakebodyj, newsize * sizeof(int));
-//         if (snakebodyj == NULL)
-//             return;
-
-//         /*generate a new trophy, refresh the screen, update the size of the snake to the newsize*/
-        
-//         for(int i=0; i<(snakesize); i++)
-//         {
-//             snakebodyi[i]=snakebodyi[i+1];
-//             snakebodyj[i]=snakebodyj[i+1];
-//         }
-//         //add the trophy coordinate at the end of the snake body arrays
-//         snakebodyi[(snakesize-1)] = currenti;
-//         snakebodyj[(snakesize-1)] = currentj;
-       
-//         refresh();
-//         trophygen();
-//         refresh();
-//         snakesize = newsize;
-//         resize = true;
-//     } else {
-//         refresh();
-//         resize = false;
-//     }
-// }
-
-
-// /* prints the snake body onto screen */
-// void printsnakebod() {
-//     for (int i = (snakesize-1); i > 0; i--) {
-//         if (snakebodyi[i] != 0 && snakebodyj[i] != 0) {
-//             mvprintw(snakebodyi[i], snakebodyj[i], "o");
-//             char text[29];
-//             sprintf(text, "%d %d\n", snakebodyi[i], snakebodyi[i]);
-//         }
-//     }
-// }
-
-// /* check to see if the snake hit itself */
-// bool didsnakehitself() {
-//     for (int i = 0; i < (snakesize-1); i++) {
-//         if (snakebodyi[i] == currenti && snakebodyj[i] == currentj) { //if the head of the snake is in the same 
-//             return true;
-//         }
-//     }
-//     return false;
-// }
 
 /* change the coordinates of the snake head depending on which direction/arrow key has been pressed */
 char* initialize(int inputChar) {
@@ -500,6 +384,7 @@ char* initialize(int inputChar) {
     return c;
 }
 
+
 /* get the size of the terminal */
 void initboard() {
     struct winsize w;
@@ -509,14 +394,3 @@ void initboard() {
     snake_set_curr_i(maxrow/2);
     snake_set_curr_j(maxcol/2);
 }
-
-// /* initialize the snakebody arrays */
-// void initsnakebodarrs() {
-//     snakebodyi = malloc((snakesize-1)*sizeof(int *));
-//     if (snakebodyi == NULL)
-//         return;
-    
-//     snakebodyj = malloc((snakesize-1)*sizeof(int *));
-//     if (snakebodyi == NULL)
-//         return;
-// }

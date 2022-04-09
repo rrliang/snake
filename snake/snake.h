@@ -26,7 +26,7 @@ void snake_set_previous_j(int value);
 void snake_move();
 void snake_print();
 
-void initsnakebodarrs();
+void snake_init();
 
 int snake_get_size();
 
