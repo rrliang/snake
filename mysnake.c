@@ -19,7 +19,6 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
-
 #include "snake_debug.h"
 
 // Defines
@@ -48,6 +47,7 @@ int     kbhit();
 void    printsnakebod();
 void    trophygen();
 int     startsnakegame();
+void    reinitialize();
 
 
 // Global Variables
@@ -312,6 +312,7 @@ int startsnakegame() {
         switch (ch) {
             case 's'|'S':
                 snakesize = 5;
+                reinitialize();
                 startsnakegame();
                 break;
             default:
@@ -328,6 +329,17 @@ int startsnakegame() {
     endwin();
     refresh();
     return EXIT_SUCCESS;
+}
+
+void reinitialize() {
+    counter = 0;
+    snakebodyi=realloc(snakebodyi, snakesize * sizeof(int));
+        if (snakebodyi == NULL)
+            return;
+        
+        snakebodyj=realloc(snakebodyj, snakesize * sizeof(int));
+        if (snakebodyj == NULL)
+            return;
 }
 
 
@@ -431,6 +443,8 @@ void printsnakebod() {
     for (int i = (snakesize-1); i > 0; i--) {
         if (snakebodyi[i] != 0 && snakebodyj[i] != 0) {
             mvprintw(snakebodyi[i], snakebodyj[i], "o");
+            char text[29];
+            sprintf(text, "%d %d\n", snakebodyi[i], snakebodyi[i]);
         }
     }
 }
