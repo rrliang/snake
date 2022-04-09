@@ -20,6 +20,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "snake_debug.h"
+
 // Defines
 //****************************
 /* Game Times */
