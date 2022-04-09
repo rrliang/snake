@@ -22,8 +22,9 @@
 
 // Defines
 //****************************
-/* Game refresh delay tick */
-#define DELAY               100000
+/* Game Times */
+#define DELAY               100000  // 100 milliseconds represented as microseconds
+#define TOT_MAX_TIMEOUT     10      // 9 seconds
 
 /* Colors = PRIMARY_BACKGROUND */
 #define COLOR_GREEN_BLACK   1   // Green with black background
@@ -108,7 +109,8 @@ int main(int argc, char **argv) {
     char ch = wgetch(win);
     while(ch){
         switch (ch) {
-            case 's'|'S':
+            case 's':
+            case 'S':
                 startsnakegame();
                 break;
             default:
@@ -163,7 +165,7 @@ int startsnakegame() {
     trophygen();
     // Initialize a trophy expiration accumulation timer
     int totcounter = 0;
-    int totcountertimeout = rand() % 90;
+    int totcountertimeout = (rand() % TOT_MAX_TIMEOUT) * 10;   // Do not exceed 9 seconds
     
     // Main snake game loop
     while (ACTIVE) {
@@ -189,10 +191,10 @@ int startsnakegame() {
         }
 
         // If the trophy has expired
-        if (totcounter > totcountertimeout) {
-            trophygen();                            // Generate a new random trophy
-            totcounter = 0;                         // Reset the trophy expiration accumulator
-            int totcountertimeout = rand() % 90;    // Generate a new random timeout
+        if (totcounter >= totcountertimeout) {
+            trophygen();                                        // Generate a new random trophy
+            totcounter = 0;                                     // Reset the trophy expiration accumulator
+            totcountertimeout = (rand() % TOT_MAX_TIMEOUT) * 10;   // Generate a new random timeout
         }
 
         // Print the trophy to the screen        
@@ -237,7 +239,6 @@ int startsnakegame() {
                 endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; // Change ending message appropriately
                 break; // Leave the loop, ending the game
             }
-        
         }
         
         // If the snake body is fully grown (Shows all body segments on screen)
@@ -261,7 +262,7 @@ int startsnakegame() {
             snakebodyj[counter] = previousj;
             counter++;  // Increment snake size counter
         }
-        
+
         // Print the snake body
         printsnakebod();
 
@@ -271,9 +272,9 @@ int startsnakegame() {
             break; // Leave the loop
         }
 
-        refresh(); // Refresh the screen
-        usleep(DELAY- (snakesize * 1000)); // The speed of the snake movement (the delay between each loop)
-        totcounter++; // Add to the total counter (used in the trophy gen)
+        refresh();      // Refresh the screen
+        totcounter++;   // Add to the total counter (used in the trophy gen)
+        usleep(DELAY);  // The speed of the snake game, 62.5 frames per second.
     }
     
     // Free the snake body arrays in memory
