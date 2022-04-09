@@ -1,2 +1,2 @@
 all:
-	gcc mysnake.c -o mysnake -lncurses snake_debug.c
+	gcc -o mysnake  mysnake.c -lncurses "debug/snake_debug.c" "snake/snake.c" "trophy/trophy.c"

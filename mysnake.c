@@ -10,7 +10,7 @@
  ============================================================================
  */
 
-// Includes
+// Library Includes
 //****************************
 #include <ncurses.h>
 #include <stdio.h>
@@ -19,7 +19,12 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
-#include "snake_debug.h"
+#include <stdbool.h>
+
+// Project Includes
+#include "debug/snake_debug.h"
+#include "snake/snake.h"
+#include "trophy/trophy.h"
 
 // Defines
 //****************************
@@ -37,30 +42,29 @@
 
 // Prototype Functions
 //****************************
-void    checktrophy();
+// void    checktrophy();
 bool    checkwon();
-bool    didsnakehitself();
+// bool    didsnakehitself();
 void    initboard();
 char*   initialize(int C);
-void    initsnakebodarrs();
+// void    initsnakebodarrs();
 int     kbhit();
-void    printsnakebod();
-void    trophygen();
+// void    printsnakebod();
+// void    trophygen();
 int     startsnakegame();
-void    reinitialize();
 
 
 // Global Variables
 //****************************
 /* Snake Attributes */
-int currenti = 1;       // Current snake head y value
-int currentj = 1;       // Current snake head x value
-int previousi;          // Previous y value for the snake head
-int previousj;          // Previous x value for the snake head
-int *snakebodyi;        // Snake body y values : index = distance from head, value = grid coord
-int *snakebodyj;        // Snake body x values : index = distance from head, value = grid coord
-int snakesize = 5;      // Current size of the snake (Player score)
-int counter;            // Current snake body refresh index
+// int currenti = 1;       // Current snake head y value
+// int currentj = 1;       // Current snake head x value
+// int previousi;          // Previous y value for the snake head
+// int previousj;          // Previous x value for the snake head
+// int *snakebodyi;        // Snake body y values : index = distance from head, value = grid coord
+// int *snakebodyj;        // Snake body x values : index = distance from head, value = grid coord
+// int snakesize = 5;      // Current size of the snake (Player score)
+// int counter;            // Current snake body refresh index
 
 /* Window Attributes */
 int maxrow;             // Maximum number of rows in the game grid
@@ -68,9 +72,9 @@ int maxcol;             // Maximum number of columns in the game grid
 bool resize;            // Window resizable flag
 
 /* Trophy Attributes */
-int trophyi;            // Trophy y value
-int trophyj;            // Trophy x value
-int trophyval;          // Trophy score value
+// int trophyi;            // Trophy y value
+// int trophyj;            // Trophy x value
+// int trophyval;          // Trophy score value
 int inputChar, previousChar, lastvalidChar = 0;
 
 
@@ -78,8 +82,6 @@ int inputChar, previousChar, lastvalidChar = 0;
  * Snake game driver.
  * This contains the game's main loop function
  * and drives the game.
- *
- * @author Rachel Liang
  *
  * @param ac    - Number of arguments passed to the main function
  * @param av    - Array of additional arguments passed to the game
@@ -164,7 +166,7 @@ int startsnakegame() {
     }
 
     // Generate an initial trophy
-    trophygen();
+    trophygen(maxrow, maxcol);
     // Initialize a trophy expiration accumulation timer
     int totcounter = 0;
     int totcountertimeout = (rand() % TOT_MAX_TIMEOUT) * 10;   // Do not exceed 9 seconds
@@ -183,7 +185,7 @@ int startsnakegame() {
         (
             maxrow + 1,             // Bottom of the screen
             maxcol/2 - 6,           // Centered horizontally
-            "score: %d", snakesize  // Size of snake (score)
+            "score: %d", snake_get_size()  // Size of snake (score)
         );
 
         // Check to see if user has won
@@ -194,7 +196,7 @@ int startsnakegame() {
 
         // If the trophy has expired
         if (totcounter >= totcountertimeout) {
-            trophygen();                                        // Generate a new random trophy
+            trophygen(maxrow, maxcol);                                        // Generate a new random trophy
             totcounter = 0;                                     // Reset the trophy expiration accumulator
             totcountertimeout = (rand() % TOT_MAX_TIMEOUT) * 10;   // Generate a new random timeout
         }
@@ -203,31 +205,38 @@ int startsnakegame() {
         wattron(win, COLOR_PAIR(COLOR_YELLOW_BLACK));   // Set the color of the trophy
         mvprintw
         (
-            trophyi,    // The trophy's y coord
-            trophyj,    // The trophy's x coord
-            "%d",       // The trophy
-            trophyval   // Value of the trophy
+            trophy_get_i(),       // The trophy's y coord
+            trophy_get_j(),       // The trophy's x coord
+            "%d",           // The trophy
+            trophy_get_value()    // Value of the trophy
         );
         
         // If user ran into the border
-        if (currenti == 0 || currentj == 0 || currenti == maxrow || currentj == maxcol-1) {
+        if (snake_get_curr_i() == 0 || snake_get_curr_j() == 0 || snake_get_curr_i() == maxrow || snake_get_curr_j() == maxcol-1) {
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!";    // Change the ending message appropriately
             break;  // Exit the loop
         }
 
         // Store the previous coords of the snake head
-        previousi = currenti;
-        previousj = currentj;
+        snake_set_previous_i(snake_get_curr_i());
+        snake_set_previous_j(snake_get_curr_j());
 
         // Check to see if the snake has run into the trophy
-        checktrophy();
+        if (checktrophy(snake_get_curr_i(), snake_get_curr_j())) {
+            snake_grow();
+            trophygen(maxrow, maxcol);
+            resize = true;
+        } else {
+            
+            resize = false;
+        }
 
         // Print the snake head
         wattron(win, COLOR_PAIR(COLOR_GREEN_BLACK));    // Change the color of the next drawn object
         mvprintw
         (
-            currenti,               // Current snake head y coord
-            currentj,               // Current snake head x coord
+            snake_get_curr_i(),               // Current snake head y coord
+            snake_get_curr_j(),               // Current snake head x coord
             initialize(inputChar)   // Snake head
         );
 
@@ -243,33 +252,14 @@ int startsnakegame() {
             }
         }
         
-        // If the snake body is fully grown (Shows all body segments on screen)
-        if (counter == (snakesize-1)) {
-            // Move the snake body forward without growth
-            for(int i=0; i<(snakesize); i++)
-            {
-                // Shift body values left in their arrays
-                snakebodyi[i]=snakebodyi[i+1];
-                snakebodyj[i]=snakebodyj[i+1];
-            }
-            // Add the previous snake head coordinate at the end of the snake body arrays
-            snakebodyi[(snakesize-1)] = previousi;
-            snakebodyj[(snakesize-1)] = previousj;
-        }
-        // Else the snake body array has not been filled yet
-        else
-        {
-            // Grow the snake by filling up the array with the previous coordinates one at a time
-            snakebodyi[counter] = previousi;
-            snakebodyj[counter] = previousj;
-            counter++;  // Increment snake size counter
-        }
+        // Move the snake
+        snake_move();
 
         // Print the snake body
-        printsnakebod();
+        snake_print();
 
         // If the snake has run into itself
-        if (didsnakehitself()) {
+        if (snake_did_snake_hit_self()) {
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; // Change the ending message appropriately
             break; // Leave the loop
         }
@@ -280,8 +270,8 @@ int startsnakegame() {
     }
     
     // Free the snake body arrays in memory
-    free(snakebodyi);
-    free(snakebodyj);
+    snake_free_i_body();
+    snake_free_j_body();
 
     werase(win);                                    // Erase the screen
     wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
@@ -300,7 +290,7 @@ int startsnakegame() {
     (
         maxrow/2+2-2,                                   // Center vertically
         (maxcol/2)-(14/2),           // Center horizontally
-        "Your score: %d",snakesize                                   // display score
+        "Your score: %d", snake_get_size()                                   // display score
     );     
 
     mvprintw(maxrow/2+4-2, (maxcol/2)-(strlen(endingmsg)/2), "=====Do you want to start again?=====");
@@ -312,8 +302,8 @@ int startsnakegame() {
         switch (ch) {
             case 's':
             case 'S':
-                snakesize = 5;
-                reinitialize();
+                snake_set_size(5);
+                snake_reinitialize();
                 startsnakegame();
                 break;
             default:
@@ -332,16 +322,16 @@ int startsnakegame() {
     return EXIT_SUCCESS;
 }
 
-void reinitialize() {
-    counter = 0;
-    snakebodyi=realloc(snakebodyi, snakesize * sizeof(int));
-        if (snakebodyi == NULL)
-            return;
+// void reinitialize() {
+//     counter = 0;
+//     snakebodyi=realloc(snakebodyi, snakesize * sizeof(int));
+//         if (snakebodyi == NULL)
+//             return;
         
-        snakebodyj=realloc(snakebodyj, snakesize * sizeof(int));
-        if (snakebodyj == NULL)
-            return;
-}
+//         snakebodyj=realloc(snakebodyj, snakesize * sizeof(int));
+//         if (snakebodyj == NULL)
+//             return;
+// }
 
 
 int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
@@ -354,152 +344,153 @@ int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard
 }
 
 bool checkwon() {
-    return (snakesize >= ((maxcol+maxrow)*2)/2); //return true if size of snake is half of the terminal perimeter
+    // Return true if size of snake is half of the terminal perimeter
+    return (snake_get_size() >= (maxcol + maxrow));
 }
 
-/* trophy will have a value (1-9), and be randomly generated somewhere in the snakepit*/
-void trophygen()
-{
-    trophyval = 1 + rand() % (9 + 1 - 1); //generate a random number from range of 1-9
-    trophyi = 1 + (rand() % ((maxrow-2))); //generate a random number for the x coordinate of the trophy from range of 1 to (horizontal length of terminal-1)
-    trophyj = 1 + (rand() % ((maxcol-2))); //generate a random number for the y coordinate of the trophy from range of 1 to (vertical length of terminal-1)
+// /* trophy will have a value (1-9), and be randomly generated somewhere in the snakepit*/
+// void trophygen()
+// {
+//     trophyval = 1 + rand() % (9 + 1 - 1); //generate a random number from range of 1-9
+//     trophyi = 1 + (rand() % ((maxrow-2))); //generate a random number for the x coordinate of the trophy from range of 1 to (horizontal length of terminal-1)
+//     trophyj = 1 + (rand() % ((maxcol-2))); //generate a random number for the y coordinate of the trophy from range of 1 to (vertical length of terminal-1)
     
-    /* check if randomly generated trophy coordinates clash with existing snake head and body
-       if yes, regenerate the random coordinate, otherwise exit loop */
+//     /* check if randomly generated trophy coordinates clash with existing snake head and body
+//        if yes, regenerate the random coordinate, otherwise exit loop */
     
-    bool inotsame = false;
-    bool jnotsame = false;
-    while (inotsame) {
-        bool isamecurrent = (trophyi != currenti); //random x coord for trophy does not clash with snake head
-        bool inotsamebody = true;
-        for (int i = 0; i < snakesize-1 ; i++) {
-            if (trophyi == snakebodyi[i] || trophyi >= maxrow) { //random x coord for trophy is not part of the snake body
-                inotsamebody = false;
-                break;
-            }
-        }
-        if (inotsame && inotsamebody) { 
-            inotsame = true;
-        } else {
-            trophyi = 1 + (rand() % ((maxrow-2))); 
-        }
-    }
+//     bool inotsame = false;
+//     bool jnotsame = false;
+//     while (inotsame) {
+//         bool isamecurrent = (trophyi != currenti); //random x coord for trophy does not clash with snake head
+//         bool inotsamebody = true;
+//         for (int i = 0; i < snakesize-1 ; i++) {
+//             if (trophyi == snakebodyi[i] || trophyi >= maxrow) { //random x coord for trophy is not part of the snake body
+//                 inotsamebody = false;
+//                 break;
+//             }
+//         }
+//         if (inotsame && inotsamebody) { 
+//             inotsame = true;
+//         } else {
+//             trophyi = 1 + (rand() % ((maxrow-2))); 
+//         }
+//     }
 
-    while (jnotsame) {
-        bool jsamecurrent = (trophyj != currentj); //random y coord for trophy does not clash with snake head
-        bool jnotsamebody = true;
-        for (int i = 0; i < snakesize-1 ; i++) {
-            if (trophyj == snakebodyj[i] || trophyj >= maxcol) { //random y coord for trophy is not part of the snake body
-                jnotsamebody = false;
-                break;
-            }
-        }
-        if (jnotsame && jnotsamebody) {
-            jnotsame = true;
-        } else {
-            trophyj = 1 + (rand() % ((maxcol-2)));
-        }
-    }
-}
+//     while (jnotsame) {
+//         bool jsamecurrent = (trophyj != currentj); //random y coord for trophy does not clash with snake head
+//         bool jnotsamebody = true;
+//         for (int i = 0; i < snakesize-1 ; i++) {
+//             if (trophyj == snakebodyj[i] || trophyj >= maxcol) { //random y coord for trophy is not part of the snake body
+//                 jnotsamebody = false;
+//                 break;
+//             }
+//         }
+//         if (jnotsame && jnotsamebody) {
+//             jnotsame = true;
+//         } else {
+//             trophyj = 1 + (rand() % ((maxcol-2)));
+//         }
+//     }
+// }
 
 /*this function will check whether or not the snake head has gotten to the trophy*/
-void checktrophy() {
-    if (currenti == trophyi && currentj == trophyj) { //if snake head coords are same as the trophy coords
-        int newsize = snakesize + trophyval; //newsize of the snake is original size + value of the trophy
+// void checktrophy() {
+//     if (currenti == trophyi && currentj == trophyj) { //if snake head coords are same as the trophy coords
+//         int newsize = snakesize + trophyval; //newsize of the snake is original size + value of the trophy
 
-        /*resize the snakebodyi and snakebodyj arrays to the newsize of the snake*/
-        snakebodyi=realloc(snakebodyi, newsize * sizeof(int));
-        if (snakebodyi == NULL)
-            return;
+//         /*resize the snakebodyi and snakebodyj arrays to the newsize of the snake*/
+//         snakebodyi=realloc(snakebodyi, newsize * sizeof(int));
+//         if (snakebodyi == NULL)
+//             return;
         
-        snakebodyj=realloc(snakebodyj, newsize * sizeof(int));
-        if (snakebodyj == NULL)
-            return;
+//         snakebodyj=realloc(snakebodyj, newsize * sizeof(int));
+//         if (snakebodyj == NULL)
+//             return;
 
-        /*generate a new trophy, refresh the screen, update the size of the snake to the newsize*/
+//         /*generate a new trophy, refresh the screen, update the size of the snake to the newsize*/
         
-        for(int i=0; i<(snakesize); i++)
-        {
-            snakebodyi[i]=snakebodyi[i+1];
-            snakebodyj[i]=snakebodyj[i+1];
-        }
-        //add the trophy coordinate at the end of the snake body arrays
-        snakebodyi[(snakesize-1)] = currenti;
-        snakebodyj[(snakesize-1)] = currentj;
+//         for(int i=0; i<(snakesize); i++)
+//         {
+//             snakebodyi[i]=snakebodyi[i+1];
+//             snakebodyj[i]=snakebodyj[i+1];
+//         }
+//         //add the trophy coordinate at the end of the snake body arrays
+//         snakebodyi[(snakesize-1)] = currenti;
+//         snakebodyj[(snakesize-1)] = currentj;
        
-        refresh();
-        trophygen();
-        refresh();
-        snakesize = newsize;
-        resize = true;
-    } else {
-        refresh();
-        resize = false;
-    }
-}
+//         refresh();
+//         trophygen();
+//         refresh();
+//         snakesize = newsize;
+//         resize = true;
+//     } else {
+//         refresh();
+//         resize = false;
+//     }
+// }
 
 
-/* prints the snake body onto screen */
-void printsnakebod() {
-    for (int i = (snakesize-1); i > 0; i--) {
-        if (snakebodyi[i] != 0 && snakebodyj[i] != 0) {
-            mvprintw(snakebodyi[i], snakebodyj[i], "o");
-            char text[29];
-            sprintf(text, "%d %d\n", snakebodyi[i], snakebodyi[i]);
-        }
-    }
-}
+// /* prints the snake body onto screen */
+// void printsnakebod() {
+//     for (int i = (snakesize-1); i > 0; i--) {
+//         if (snakebodyi[i] != 0 && snakebodyj[i] != 0) {
+//             mvprintw(snakebodyi[i], snakebodyj[i], "o");
+//             char text[29];
+//             sprintf(text, "%d %d\n", snakebodyi[i], snakebodyi[i]);
+//         }
+//     }
+// }
 
-/* check to see if the snake hit itself */
-bool didsnakehitself() {
-    for (int i = 0; i < (snakesize-1); i++) {
-        if (snakebodyi[i] == currenti && snakebodyj[i] == currentj) { //if the head of the snake is in the same 
-            return true;
-        }
-    }
-    return false;
-}
+// /* check to see if the snake hit itself */
+// bool didsnakehitself() {
+//     for (int i = 0; i < (snakesize-1); i++) {
+//         if (snakebodyi[i] == currenti && snakebodyj[i] == currentj) { //if the head of the snake is in the same 
+//             return true;
+//         }
+//     }
+//     return false;
+// }
 
 /* change the coordinates of the snake head depending on which direction/arrow key has been pressed */
 char* initialize(int inputChar) {
     char* c;
     switch(inputChar) {
         case KEY_UP:
-            currenti -= 1;
+            snake_set_curr_i(snake_get_curr_i() - 1);
             c = "^"; //if going up, change the snake head to appropriate character
             lastvalidChar = inputChar;
             break;
         case KEY_DOWN:
-            currenti += 1;
+            snake_set_curr_i(snake_get_curr_i() + 1);
             c = "V"; //if going down, change the snake head to appropriate character
             lastvalidChar = inputChar;
             break;
         case KEY_LEFT:
-            currentj -= 1;
+            snake_set_curr_j(snake_get_curr_j() - 1);
             c = "<"; //if going left, change the snake head to appropriate character
             lastvalidChar = inputChar;
             break;
         case KEY_RIGHT:
-            currentj += 1;
+            snake_set_curr_j(snake_get_curr_j() + 1);
             c = ">"; //if going right, change the snake head to appropriate character
             lastvalidChar = inputChar;
             break;
         default:
             switch(lastvalidChar) {
                 case KEY_UP:
-                    currenti -= 1;
+                    snake_set_curr_i(snake_get_curr_i() - 1);
                     c = "^"; //if going up, change the snake head to appropriate character
                     break;
                 case KEY_DOWN:
-                    currenti += 1;
+                    snake_set_curr_i(snake_get_curr_i() + 1);
                     c = "V"; //if going down, change the snake head to appropriate character
                     break;
                 case KEY_LEFT:
-                    currentj -= 1;
+                    snake_set_curr_j(snake_get_curr_j() - 1);
                     c = "<"; //if going left, change the snake head to appropriate character
                     break;
                 case KEY_RIGHT:
-                    currentj += 1;
+                    snake_set_curr_j(snake_get_curr_j() + 1);
                     c = ">"; //if going right, change the snake head to appropriate character
                     break;
         }
@@ -515,17 +506,17 @@ void initboard() {
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
     maxrow = w.ws_row-3;
     maxcol = w.ws_col;
-    currenti = maxrow/2;
-    currentj = maxcol/2;
+    snake_set_curr_i(maxrow/2);
+    snake_set_curr_j(maxcol/2);
 }
 
-/* initialize the snakebody arrays */
-void initsnakebodarrs() {
-    snakebodyi = malloc((snakesize-1)*sizeof(int *));
-    if (snakebodyi == NULL)
-        return;
+// /* initialize the snakebody arrays */
+// void initsnakebodarrs() {
+//     snakebodyi = malloc((snakesize-1)*sizeof(int *));
+//     if (snakebodyi == NULL)
+//         return;
     
-    snakebodyj = malloc((snakesize-1)*sizeof(int *));
-    if (snakebodyi == NULL)
-        return;
-}
+//     snakebodyj = malloc((snakesize-1)*sizeof(int *));
+//     if (snakebodyi == NULL)
+//         return;
+// }
