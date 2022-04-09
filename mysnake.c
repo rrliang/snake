@@ -310,7 +310,7 @@ int startsnakegame() {
     char ch = wgetch(win);
     while(ch){
         switch (ch) {
-            case 's'
+            case 's':
             case 'S':
                 snakesize = 5;
                 reinitialize();
