@@ -4,6 +4,7 @@
 #include <ncurses.h>
 
 #include "../trophy/trophy.h"
+#include "../debug/snake_debug.h"
 
 int snake_size;     // Current size of the snake (Player score)
 int current_i;      // Current snake head y value
@@ -90,11 +91,11 @@ bool snake_did_snake_hit_self() {
 
 /* initialize the snakebody arrays */
 void initsnakebodarrs() {
-    snakebodyi = malloc((snake_size-1)*sizeof(int *));
+    snakebodyi = malloc(snake_size * sizeof(int));
     if (snakebodyi == NULL)
         return;
     
-    snakebodyj = malloc((snake_size-1)*sizeof(int *));
+    snakebodyj = malloc(snake_size * sizeof(int));
     if (snakebodyi == NULL)
         return;
 }
