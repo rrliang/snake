@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <ncurses.h>
+#include <string.h>
 
 #include "../trophy/trophy.h"
 #include "../debug/debug.h"
@@ -17,6 +18,7 @@ int counter;        // Current snake body refresh index
 
 
 void snake_grow() {
+    debug_log("snake_grow", "Growing the snake");
     /*resize the snakebodyi and snakebodyj arrays to the newsize of the snake*/
     int newsize = snake_size + trophy_get_value(); // Newsize of the snake is original size + value of the trophy
 
@@ -41,6 +43,7 @@ void snake_grow() {
 
 
 void snake_move() {
+    debug_log("snake_move", "Moving the snake");
     // If the snake body is fully grown (Shows all body segments on screen)
         if (counter == (snake_size-1)) {
             // Move the snake body forward without growth
@@ -67,6 +70,7 @@ void snake_move() {
 
 /* prints the snake body onto screen */
 void snake_print() {
+    debug_log("snake_print", "Printing the snake");
     for (int i = (snake_size-1); i > 0; i--) {
         if (snakebodyi[i] != 0 && snakebodyj[i] != 0) {
             mvprintw(snakebodyi[i], snakebodyj[i], "o");
@@ -78,6 +82,7 @@ void snake_print() {
 
 /* check to see if the snake hit itself */
 bool snake_did_snake_hit_self() {
+    debug_log("snake_did_snake_hit_self", "Checking if the snake hit itself.");
     for (int i = 0; i < (snake_size-1); i++) {
         if (snakebodyi[i] == current_i && snakebodyj[i] == current_j) { //if the head of the snake is in the same 
             return true;
@@ -89,6 +94,7 @@ bool snake_did_snake_hit_self() {
 
 /* initialize the snakebody arrays */
 void snake_init() {
+    debug_log("snake_init", "Initializing the snake body arrays.");
     snakebodyi = malloc(snake_size * sizeof(int));
     if (snakebodyi == NULL)
         return;
@@ -100,6 +106,7 @@ void snake_init() {
 
 
 void snake_reinitialize() {
+    debug_log("snake_reinitialize", "Reinitializing the snake body arrays.");
     counter = 0;
     snakebodyi=realloc(snakebodyi, snake_size * sizeof(int));
         if (snakebodyi == NULL)
@@ -142,6 +149,7 @@ int snake_get_curr_j() {
 
 
 int snake_get_i_at(int index) {
+    debug_log("snake_get_i_at", "Retrieving snake i coord.");
     int *ptr = snakebodyi;
     for (int i = 0; i < index; i++) {
         ptr += 1;
@@ -151,6 +159,7 @@ int snake_get_i_at(int index) {
 
 
 int snake_get_j_at(int index) {
+    debug_log("snake_get_j_at", "Retrieving snake j coord.");
     int *ptr = snakebodyj;
     for (int i = 0; i < index; i++) {
         ptr += 1;
@@ -160,11 +169,13 @@ int snake_get_j_at(int index) {
 
 
 void snake_free_i_body() {
+    debug_log("snake_free_i_body", "Freeing the snakebody's i array.");
     free(snakebodyi);
 }
 
 
 void snake_free_j_body() {
+    debug_log("snake_free_i_body", "Freeing the snakebody's j array.");
     free(snakebodyj);
 }
 

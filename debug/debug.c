@@ -23,7 +23,7 @@ void debug_log(char* tag, char* message) {
     // Print the tag to the to the log file
     fwrite(tag, sizeof(char), strlen(tag), log_file);
     // Print a space on the same line
-    fwrite(" ", sizeof(char), strlen(" "), log_file);
+    fwrite(": ", sizeof(char), strlen(": "), log_file);
     // Print the message to the log file
     fwrite(message, sizeof(char), strlen(message), log_file);
     // New line

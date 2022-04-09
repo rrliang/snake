@@ -46,7 +46,7 @@ bool    checkwon();
 void    initboard();
 char*   initialize(int C);
 int     kbhit();
-int     startsnakegame();
+void     startsnakegame();
 
 
 // Global Variables
@@ -120,11 +120,15 @@ int main(int argc, char **argv) {
     }
     
     endwin();
-    return 0;
+    
+    // Free the snake body arrays in memory
+    snake_free_i_body();
+    snake_free_j_body();
+    return EXIT_SUCCESS;
 }
 
 
-int startsnakegame() {
+void startsnakegame() {
     // Seed the rand() function using the current system time
     srand(time(NULL)); 
     // Gameplay ending message
@@ -264,10 +268,6 @@ int startsnakegame() {
         totcounter++;   // Add to the total counter (used in the trophy gen)
         usleep(DELAY);  // The speed of the snake game, 62.5 frames per second.
     }
-    
-    // Free the snake body arrays in memory
-    snake_free_i_body();
-    snake_free_j_body();
 
     werase(win);                                    // Erase the screen
     wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
@@ -299,7 +299,7 @@ int startsnakegame() {
             case 's':
             case 'S':
                 snake_set_size(5);
-                snake_reinitialize();
+                snake_init();
                 startsnakegame();
                 break;
             default:
@@ -315,7 +315,7 @@ int startsnakegame() {
     delwin(win);
     endwin();
     refresh();
-    return EXIT_SUCCESS;
+    return;
 }
 
 
