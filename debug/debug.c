@@ -1,3 +1,17 @@
+/*
+ ============================================================================
+ Name        : debug.c
+ Author      : Rachel Liang
+             : Jiaxin Jiang
+             : Joseph Lumpkin
+ Version     : 1.0
+ Copyright   :
+ Description : A class used to print debug information to a log file.
+ ============================================================================
+ */
+
+// Library Includes
+//****************************
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -28,22 +42,19 @@ void debug_log(char* tag, char* message) {
     fwrite(message, sizeof(char), strlen(message), log_file);
     // New line
     fwrite("\n", sizeof(char), strlen("\n"), log_file);
-
-    fclose(log_file);
+    fclose(log_file); // Close the log file process
 }
 
 
 /**
- * Clear the log file.
+ * Clear the log file in preparation
+ * for a new run of the program.
  */
-
 void debug_clear_log() {
     // Attempt to create a new log file
     FILE *log_file;
     log_file = fopen(DEBUG_LOG, "w");
-
     // Open the log file and clear all contained information
     fwrite(" ", sizeof(char), strlen(""), log_file);
-
-    fclose(log_file);
+    fclose(log_file); // Close the log file process
 }
