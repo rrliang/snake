@@ -146,8 +146,6 @@ void startsnakegame() {
     curs_set(FALSE);        // Hide text cursor
     keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
     initboard();            // Obtain terminal size and initialize window values
-    snake_set_size(5);      // Set the snake's size
-    snake_set_counter(0);
     snake_init();           // Initialize player snake values
 
     // Seed the rand() function using the current system time
@@ -314,7 +312,6 @@ void startsnakegame() {
             case 's':
             case 'S':
                 attroff(A_BLINK);  // Blink the terminal screen
-                snake_set_size(5);
                 snake_init();
                 startsnakegame();
                 break;
@@ -324,13 +321,7 @@ void startsnakegame() {
 
         }
     }
-    // refresh();                                      // Refresh the screen to display the ending message
-    // getch();                                        // Wait for the user to press any key to exit
-    //
-    // // Clean up and exit
-    // delwin(win);
-    // endwin();
-    // refresh();
+
     return;
 }
 
@@ -394,8 +385,6 @@ char* initialize(int inputChar) {
                     c = ">"; //if going right, change the snake head to appropriate character
                     break;
         }
-
-
     }
     return c;
 }
