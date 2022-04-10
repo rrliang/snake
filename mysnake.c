@@ -22,6 +22,7 @@
 #include <stdbool.h>
 
 // Project Includes
+//****************************
 #include "debug/debug.h"
 #include "snake/snake.h"
 #include "trophy/trophy.h"
@@ -29,7 +30,7 @@
 // Defines
 //****************************
 /* Game Times */
-#define DELAY               100000  // 100 milliseconds represented as microseconds
+#define DELAY               100000  // 100 milliseconds as microseconds
 #define TOT_MAX_TIMEOUT     10      // 9 seconds
 
 /* Colors = PRIMARY_BACKGROUND */

@@ -18,6 +18,8 @@
 #include <errno.h>
 #include <string.h>
 
+// Defines
+//****************************
 #define DEBUG_LOG   "debug/log.txt"
 
 /**
