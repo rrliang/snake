@@ -13,6 +13,7 @@ void snake_set_curr_j(int j);
 
 int snake_get_size();
 void snake_set_size(int size);
+void snake_set_counter(int index);
 
 void snake_grow();
 void snake_free_i_body();

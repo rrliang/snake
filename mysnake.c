@@ -145,6 +145,8 @@ void startsnakegame() {
     curs_set(FALSE);        // Hide text cursor
     keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
     initboard();            // Obtain terminal size and initialize window values
+    snake_set_size(5);      // Set the snake's size
+    snake_set_counter(0);
     snake_init();           // Initialize player snake values
 
     // Seed the rand() function using the current system time
@@ -284,7 +286,7 @@ void startsnakegame() {
     werase(win);                                    // Erase the screen
     wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
     box(win,0,0);                                   // Draw a white border
-    attron(A_BLINK);                                // Blink the next drawn thing on the terminal screen
+    attron(A_BLINK);                                // Blink the terminal screen
 
    // Prepare the ending message
     mvprintw
@@ -310,6 +312,7 @@ void startsnakegame() {
         switch (ch) {
             case 's':
             case 'S':
+                attroff(A_BLINK);  // Blink the terminal screen
                 snake_set_size(5);
                 snake_init();
                 startsnakegame();

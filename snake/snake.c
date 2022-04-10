@@ -8,7 +8,7 @@
 #include "../debug/debug.h"
 
 /* Verbose Debug Logging Flag */
-bool snake_D = false;  // Set to true for verbose debug information
+bool snake_D = true;  // Set to true for verbose debug information
 
 /* Snake Attributes */
 int snake_size;     // Current size of the snake (Player score)
@@ -106,7 +106,6 @@ bool snake_did_snake_hit_self() {
 
 /* initialize the snakebody arrays */
 void snake_init() {
-    snake_size = 5;
     if(snake_D) debug_log("snake::snake_init", "Initializing the snake body arrays.");
     snakebodyi = malloc(snake_size * sizeof(int));
     if (snakebodyi == NULL)
@@ -138,6 +137,16 @@ int snake_get_size() {
 
 void snake_set_size(int size) {
     snake_size = size;
+}
+
+
+void snake_set_counter(int index) {
+    counter = index;
+}
+
+
+int snake_get_counter() {
+    return counter;
 }
 
 
