@@ -26,23 +26,23 @@ void snake_move();
 void snake_print();
 
 /* Accessors and Mutators */
-int snake_get_i_at(int index);
-int snake_get_j_at(int index);
+int snake_get_i_at(int);
+int snake_get_j_at(int);
 
 int snake_get_curr_i();
-void snake_set_curr_i(int i);
+void snake_set_curr_i(int);
 
 int snake_get_curr_j();
-void snake_set_curr_j(int j);
+void snake_set_curr_j(int);
 
 int snake_get_size();
-void snake_set_size(int size);
+void snake_set_size(int);
 
-void snake_set_counter(int index);
+void snake_set_counter(int);
 int snake_get_counter();
 
 int snake_get_previous_i();
-void snake_set_previous_i(int value);
+void snake_set_previous_i(int);
 
 int snake_get_previous_j();
-void snake_set_previous_j(int value);
+void snake_set_previous_j(int);

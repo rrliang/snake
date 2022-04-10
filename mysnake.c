@@ -31,7 +31,6 @@
 //****************************
 /* Game Times */
 #define DELAY               100000  // 100 milliseconds as microseconds
-#define TOT_MAX_TIMEOUT     10      // 9 seconds
 
 /* Colors = PRIMARY_BACKGROUND */
 #define COLOR_GREEN_BLACK   1   // Green with black background
@@ -45,7 +44,7 @@
 //****************************
 bool    checkwon();
 void    initboard();
-char*   initialize(int C);
+char*   initialize(int);
 int     kbhit();
 void    startsnakegame();
 
@@ -54,7 +53,7 @@ void    startsnakegame();
 //****************************
 
 /* Verbose Debug Logging Flag */
-bool D = true;  // Set to true for verbose debug information
+bool D = false;
 
 /* Window Attributes */
 WINDOW *startWin;       // Start screen window
@@ -62,7 +61,6 @@ WINDOW *win;            // ncurses window struct
 int maxrow;             // Maximum number of rows in the game grid
 int maxcol;             // Maximum number of columns in the game grid
 bool resize;            // Window resizable flag
-
 
 /* Key Press Trackers */
 int inputChar, previousChar, lastvalidChar = 0;
@@ -177,9 +175,6 @@ void startsnakegame() {
 
     // Generate an initial trophy
     trophygen(maxrow, maxcol);
-    // Initialize a trophy expiration accumulation timer
-    int totcounter = 0;
-    int totcountertimeout = (rand() % TOT_MAX_TIMEOUT) * 10;   // Do not exceed 9 seconds
 
     // Main snake game loop
     while (ACTIVE) {
@@ -205,10 +200,9 @@ void startsnakegame() {
         }
 
         // If the trophy has expired
-        if (totcounter >= totcountertimeout) {
-            trophygen(maxrow, maxcol);                                        // Generate a new random trophy
-            totcounter = 0;                                     // Reset the trophy expiration accumulator
-            totcountertimeout = (rand() % TOT_MAX_TIMEOUT) * 10;   // Generate a new random timeout
+        if (trophy_get_time() >= trophy_get_expiration()) {
+            // Generate a new trophy
+            trophygen(maxrow, maxcol);
         }
 
         // Print the trophy to the screen
@@ -277,7 +271,8 @@ void startsnakegame() {
         if (D) debug_log("mysnake::startsnakegame", "Snake did not hit self, continuing.");
         refresh();      // Refresh the screen
         if (D) debug_log("mysnake::startsnakegame", "incrementing totcounter.");
-        totcounter++;   // Add to the total counter (used in the trophy gen)
+        // Update the trophy's time spent alive (current time + 100ms)
+        trophy_set_time(trophy_get_time() + 100);
         if (D) debug_log("mysnake::startsnakegame", "usleep");
         usleep(DELAY);  // The speed of the snake game, 62.5 frames per second.
     }

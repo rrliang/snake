@@ -23,4 +23,7 @@ void trophygen(int max_row, int max_col);
 /* Accessors and Mutators */
 int trophy_get_i();
 int trophy_get_j();
+int trophy_get_expiration();
+int trophy_get_time();
+void trophy_set_time(int);
 int trophy_get_value();

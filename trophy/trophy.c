@@ -23,7 +23,11 @@
 
 // Defines
 //****************************
-#define trophy_max_value    9
+#define TROPHY_VALUE_MAX        9
+#define TROPHY_EXPIRATION_MAX   9 // 9 seconds
+
+/* Verbose Debug Logging Flag */
+bool trophy_D = true;
 
 // Attributes
 //****************************
@@ -32,6 +36,8 @@
 int trophy_i;           // Trophy y value on screen
 int trophy_j;           // Trophy x value on screen
 int trophy_value;       // Trophy score value
+int trophy_time;        // How long the trophy has been alive in milliseconds
+int trophy_expiration;  // Trophy expiration boundary in milliseconds
 
 
 /**
@@ -53,11 +59,18 @@ bool checktrophy(int currenti, int currentj) {
 void trophygen(int max_row, int max_col)
 {
     // Generate a new trophy value
-    trophy_value = 1 + rand() % (trophy_max_value); // Range of 1-9
+    trophy_value = 1 + rand() % (TROPHY_VALUE_MAX); // Range of 1-9
     // Generate a random x coordinate for the trophy
     trophy_i = 1 + (rand() % ((max_row-2)));// Range of 1 to (terminal_width-2)
     // Generate a random y coordinate of the trophy
     trophy_j = 1 + (rand() % ((max_col-2)));// Range of 1 to (terminal_height-2)
+    // Reset the trophy's time alive
+    trophy_time = 0;
+    // Generate a trophy timeout between 1-9 seconds, as milliseconds
+    trophy_expiration = (rand() % TROPHY_EXPIRATION_MAX) * 1000;
+    if (trophy_expiration < 1000) {
+      trophy_expiration = 1000;
+    }
 
     // Check if randomly generated trophy coordinates clash with existing snake
     // head and body if yes, regenerate the random coordinate,
@@ -123,6 +136,23 @@ int trophy_get_j()
 int trophy_set_j()
 {
     return trophy_j;
+}
+
+
+int trophy_get_expiration()
+{
+    return trophy_expiration;
+}
+
+
+int trophy_get_time()
+{
+    return trophy_time;
+}
+
+void trophy_set_time(int time)
+{
+    trophy_time = time;
 }
 
 

@@ -25,7 +25,7 @@
 #include "../debug/debug.h"
 
 /* Verbose Debug Logging Flag */
-bool snake_D = false;  // Set to true for verbose debug information
+bool snake_D = false;
 
 /* Snake Attributes */
 int snake_size;     // Current size of the snake (Player score)
