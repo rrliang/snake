@@ -46,30 +46,24 @@ bool    checkwon();
 void    initboard();
 char*   initialize(int C);
 int     kbhit();
-void     startsnakegame();
+void    startsnakegame();
 
 
 // Global Variables
 //****************************
-/* Snake Attributes */
-// int currenti = 1;       // Current snake head y value
-// int currentj = 1;       // Current snake head x value
-// int previousi;          // Previous y value for the snake head
-// int previousj;          // Previous x value for the snake head
-// int *snakebodyi;        // Snake body y values : index = distance from head, value = grid coord
-// int *snakebodyj;        // Snake body x values : index = distance from head, value = grid coord
-// int snakesize = 5;      // Current size of the snake (Player score)
-// int counter;            // Current snake body refresh index
+
+/* Verbose Debug Logging Flag */
+bool D = true;  // Set to true for verbose debug information
 
 /* Window Attributes */
+WINDOW *startWin;       // Start screen window
+WINDOW *win;            // ncurses window struct
 int maxrow;             // Maximum number of rows in the game grid
 int maxcol;             // Maximum number of columns in the game grid
 bool resize;            // Window resizable flag
 
-/* Trophy Attributes */
-// int trophyi;            // Trophy y value
-// int trophyj;            // Trophy x value
-// int trophyval;          // Trophy score value
+
+/* Key Press Trackers */
 int inputChar, previousChar, lastvalidChar = 0;
 
 
@@ -82,20 +76,24 @@ int inputChar, previousChar, lastvalidChar = 0;
  * @param av    - Array of additional arguments passed to the game
  */
 int main(int argc, char **argv) {
-    debug_clear_log();
-    initscr();
-    noecho();
-    curs_set(0);
-    int yMax, xMax;
-    getmaxyx(stdscr,yMax,xMax);
-    WINDOW *win = newwin(yMax/2,xMax/2,yMax/4,xMax/4);
+    debug_clear_log();  // Prepare the log file for a new program run
+
+    // Create and initialize windows
+    startWin = initscr();   // Initialize start screen window
+    cbreak();               // Break when ctrl ^ c is pressed
+    noecho();               // Disable terminal echoing
+    curs_set(FALSE);        // Hide text cursor
+    keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
+    initboard();            // Obtain terminal size and initialize window values
+    snake_init();           // Initialize player snake values
+
     // If the current terminal does NOT support colored text
     if(has_colors() == FALSE)
     {
         // Inform the user and abort
         printf("Your terminal does not support color\n");
         printf("Aborting %s...\n", argv[0]);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     // Initialize color pairs (PRIMARY, BACKGROUND)
@@ -103,11 +101,15 @@ int main(int argc, char **argv) {
     init_pair(COLOR_GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);     // Green with black background
     init_pair(COLOR_WHITE_BLACK, COLOR_WHITE, COLOR_BLACK);     // White with black background
     init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
-    box(win,0,0);
-    mvwprintw(win, 8-2, 20, "=====Start Game: Press s or S=====");
-    mvwprintw(win, 10-2, 20, "======Exit Game: Press Ctrl+C=====");
-    char ch = wgetch(win);
+    box(startWin, 0, 0);
+    char *startGame = "=====Start Game: Press s or S=====";
+    mvwprintw(startWin, maxrow/2, maxcol/2 - strlen(startGame)/2, startGame);
+    char *exitGame = "======Exit Game: Press Ctrl+C=====";
+    mvwprintw(startWin, maxrow/2 + 2, maxcol/2 - strlen(exitGame)/2, exitGame);
+    char ch = wgetch(startWin);
+
     while(ch){
+        if(D) debug_log("mysnake::main", "Main game loop beginning new iterration.");
         switch (ch) {
             case 's':
             case 'S':
@@ -118,9 +120,15 @@ int main(int argc, char **argv) {
                 break;
         }
     }
-    
+
+    refresh();
+    usleep(10000000);
+
+    // Clean up and exit
+    delwin(win);
     endwin();
-    
+    refresh();
+
     // Free the snake body arrays in memory
     snake_free_i_body();
     snake_free_j_body();
@@ -129,22 +137,23 @@ int main(int argc, char **argv) {
 
 
 void startsnakegame() {
-    // Seed the rand() function using the current system time
-    srand(time(NULL)); 
-    // Gameplay ending message
-    // This is displayed to user upon game completion    
-    char* endingmsg;
-    
-    // Create and initialize ncurses window
-    WINDOW * win;           // ncurses window struct
-    win = initscr();        // Initialize ncurses's window
+    if(D) debug_log("mysnake::startsnakegame", "Starting the snake game.");
+
+    win = initscr();        // Initialize game window
     cbreak();               // Break when ctrl ^ c is pressed
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
     keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
-    initboard();            // Obtain terminal size and initialize window size values
-    snake_init();     // Initialize player snake values
-    
+    initboard();            // Obtain terminal size and initialize window values
+    snake_init();           // Initialize player snake values
+
+    // Seed the rand() function using the current system time
+    srand(time(NULL));
+
+    // Gameplay ending message
+    // This is displayed to user upon game completion
+    char* endingmsg;
+
     // Initialize the snake head
     // int inputChar, previousChar = 0;
     // Generate an initial snake direction
@@ -170,7 +179,7 @@ void startsnakegame() {
     // Initialize a trophy expiration accumulation timer
     int totcounter = 0;
     int totcountertimeout = (rand() % TOT_MAX_TIMEOUT) * 10;   // Do not exceed 9 seconds
-    
+
     // Main snake game loop
     while (ACTIVE) {
         // Draw game borders
@@ -179,7 +188,7 @@ void startsnakegame() {
         box(win,0,0);                                   // Draw a white border
         move(maxrow,1);                                 // Move the cursor near the bottom of the screen
         hline('-', maxcol-2);                           // Make a horizontal screen divisor
-        
+
         // Print the current score
         mvprintw
         (
@@ -201,7 +210,7 @@ void startsnakegame() {
             totcountertimeout = (rand() % TOT_MAX_TIMEOUT) * 10;   // Generate a new random timeout
         }
 
-        // Print the trophy to the screen        
+        // Print the trophy to the screen
         wattron(win, COLOR_PAIR(COLOR_YELLOW_BLACK));   // Set the color of the trophy
         mvprintw
         (
@@ -210,7 +219,7 @@ void startsnakegame() {
             "%d",           // The trophy
             trophy_get_value()    // Value of the trophy
         );
-        
+
         // If user ran into the border
         if (snake_get_curr_i() == 0 || snake_get_curr_j() == 0 || snake_get_curr_i() == maxrow || snake_get_curr_j() == maxcol-1) {
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO THE BORDER!";    // Change the ending message appropriately
@@ -227,7 +236,7 @@ void startsnakegame() {
             trophygen(maxrow, maxcol);
             resize = true;
         } else {
-            
+
             resize = false;
         }
 
@@ -251,7 +260,7 @@ void startsnakegame() {
                 break; // Leave the loop, ending the game
             }
         }
-        
+
         // Move the snake
         snake_move();
 
@@ -260,12 +269,15 @@ void startsnakegame() {
 
         // If the snake has run into itself
         if (snake_did_snake_hit_self()) {
+            if (D) debug_log("mysnake::startsnakegame", "Snake did hit itself, breaking.");
             endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; // Change the ending message appropriately
             break; // Leave the loop
         }
-
+        if (D) debug_log("mysnake::startsnakegame", "Snake did not hit self, continuing.");
         refresh();      // Refresh the screen
+        if (D) debug_log("mysnake::startsnakegame", "incrementing totcounter.");
         totcounter++;   // Add to the total counter (used in the trophy gen)
+        if (D) debug_log("mysnake::startsnakegame", "usleep");
         usleep(DELAY);  // The speed of the snake game, 62.5 frames per second.
     }
 
@@ -280,14 +292,14 @@ void startsnakegame() {
         maxrow/2-2,                                   // Center vertically
         (maxcol/2)-(strlen(endingmsg)/2),           // Center horizontally
         endingmsg                                   // Message to display
-    ); 
+    );
 
     mvprintw
     (
         maxrow/2+2-2,                                   // Center vertically
         (maxcol/2)-(14/2),           // Center horizontally
         "Your score: %d", snake_get_size()                                   // display score
-    );     
+    );
 
     mvprintw(maxrow/2+4-2, (maxcol/2)-(strlen(endingmsg)/2), "=====Do you want to start again?=====");
     mvprintw(maxrow/2+6-2, (maxcol/2)-(strlen(endingmsg)/2), "===== Start Game: Press s or S =====");
@@ -305,16 +317,16 @@ void startsnakegame() {
             default:
                 ch = wgetch(win);
                 break;
-               
-        }
-    } 
-    refresh();                                      // Refresh the screen to display the ending message
-    getch();                                        // Wait for the user to press any key to exit
 
-    // Clean up and exit
-    delwin(win);
-    endwin();
-    refresh();
+        }
+    }
+    // refresh();                                      // Refresh the screen to display the ending message
+    // getch();                                        // Wait for the user to press any key to exit
+    //
+    // // Clean up and exit
+    // delwin(win);
+    // endwin();
+    // refresh();
     return;
 }
 
@@ -378,8 +390,8 @@ char* initialize(int inputChar) {
                     c = ">"; //if going right, change the snake head to appropriate character
                     break;
         }
-            
-            
+
+
     }
     return c;
 }
