@@ -20,6 +20,7 @@
 // Project Includes
 //****************************
 #include "../snake/snake.h"
+#include "../debug/debug.h"
 
 // Defines
 //****************************
@@ -56,7 +57,7 @@ bool checktrophy(int currenti, int currentj) {
  * Trophy will have a value (1-9),
  * and be randomly generated somewhere in the snakepit.
  */
-void trophygen(int max_row, int max_col)
+void trophy_gen(int max_row, int max_col)
 {
     // Generate a new trophy value
     trophy_value = 1 + rand() % (TROPHY_VALUE_MAX); // Range of 1-9
@@ -67,9 +68,14 @@ void trophygen(int max_row, int max_col)
     // Reset the trophy's time alive
     trophy_time = 0;
     // Generate a trophy timeout between 1-9 seconds, as milliseconds
-    trophy_expiration = (rand() % TROPHY_EXPIRATION_MAX+1) * 1000;
+    trophy_expiration = ((rand() % TROPHY_EXPIRATION_MAX)+1) * 1000;
     if (trophy_expiration < 1000) {
       trophy_expiration = 1000;
+    }
+    if (trophy_D) {
+      char str[64];
+      sprintf(str, "trophy_expiration = %d milliseconds", trophy_expiration);
+      debug_log("trophy::trophy_gen", str);
     }
 
     // Check if randomly generated trophy coordinates clash with existing snake

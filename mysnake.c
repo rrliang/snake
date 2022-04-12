@@ -30,7 +30,7 @@
 // Defines
 //****************************
 /* Game Times */
-#define DELAY              300000  // 100 milliseconds as microseconds
+#define DELAY              100000  // 100 milliseconds as microseconds
 
 /* Colors = PRIMARY_BACKGROUND */
 #define COLOR_GREEN_BLACK   1   // Green with black background
@@ -76,14 +76,14 @@ int inputChar, previousChar, lastvalidChar = 0;
  */
 int main(int argc, char **argv) {
     debug_clear_log();  // Prepare the log file for a new program run
-    
+
     // Create and initialize windows
     initboard();   // Obtain terminal size and initialize window values
     startWin = initscr();
     cbreak();               // Break when ctrl ^ c is pressed
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
-    keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input          
+    keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
     snake_init();           // Initialize player snake values
 
     // If the current terminal does NOT support colored text
@@ -100,15 +100,16 @@ int main(int argc, char **argv) {
     init_pair(COLOR_GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);     // Green with black background
     init_pair(COLOR_WHITE_BLACK, COLOR_WHITE, COLOR_BLACK);     // White with black background
     init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
+    // The start screen is smaller and centered
     int yMax, xMax;
     char startGame_text[] = "=====Start Game: Press s or S=====";
-    char ExitGame_text[] = "======Exit Game: Press Ctrl+C=====";
+    char exitGame_text[] = "======Exit Game: Press Ctrl+C=====";
     yMax=5;
-    xMax = (sizeof(startGame_text)>sizeof(ExitGame_text)?sizeof(startGame_text):sizeof(ExitGame_text)) +1;
+    xMax = (sizeof(startGame_text)>sizeof(exitGame_text)?sizeof(startGame_text):sizeof(exitGame_text)) +1;
     startWin = newwin(yMax,xMax,maxrow/3,maxcol/3);
     box(startWin,0,0);
     mvwprintw(startWin, yMax/2-1, 1, startGame_text);
-    mvwprintw(startWin, yMax/2+1, 1,ExitGame_text);
+    mvwprintw(startWin, yMax/2+1, 1,exitGame_text);
     char ch = wgetch(startWin);
 
     while(ch){
@@ -125,7 +126,7 @@ int main(int argc, char **argv) {
     }
 
     refresh();
-    usleep(10000000);
+    // usleep(1000000);
 
     // Clean up and exit
     delwin(win);
@@ -178,7 +179,7 @@ void startsnakegame() {
     }
 
     // Generate an initial trophy
-    trophygen(maxrow, maxcol);
+    trophy_gen(maxrow, maxcol);
 
     // Main snake game loop
     while (ACTIVE) {
@@ -205,8 +206,10 @@ void startsnakegame() {
 
         // If the trophy has expired
         if (trophy_get_time() >= trophy_get_expiration()) {
+            if (D) debug_log("mysnake::startsnakegame", "trophy_time has reached it's expiration. Generating a new Trophy.");
             // Generate a new trophy
-            trophygen(maxrow, maxcol);
+            trophy_gen(maxrow, maxcol);
+            if (D) debug_log("mysnake::startsnakegame", "Finished generating a new trophy.");
         }
 
         // Print the trophy to the screen
@@ -215,7 +218,7 @@ void startsnakegame() {
         (
             trophy_get_i(),       // The trophy's y coord
             trophy_get_j(),       // The trophy's x coord
-            "%d",           // The trophy
+            "%d",                 // The trophy
             trophy_get_value()    // Value of the trophy
         );
 
@@ -232,7 +235,7 @@ void startsnakegame() {
         // Check to see if the snake has run into the trophy
         if (checktrophy(snake_get_curr_i(), snake_get_curr_j())) {
             snake_grow();
-            trophygen(maxrow, maxcol);
+            trophy_gen(maxrow, maxcol);
             resize = true;
         } else {
 

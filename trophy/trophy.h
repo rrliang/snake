@@ -18,7 +18,7 @@
 // Prototype Functions
 //****************************
 bool checktrophy(int currenti, int currentj);
-void trophygen(int max_row, int max_col);
+void trophy_gen(int max_row, int max_col);
 
 /* Accessors and Mutators */
 int trophy_get_i();
