@@ -30,7 +30,7 @@
 // Defines
 //****************************
 /* Game Times */
-#define DELAY               100000  // 100 milliseconds as microseconds
+#define DELAY              300000  // 100 milliseconds as microseconds
 
 /* Colors = PRIMARY_BACKGROUND */
 #define COLOR_GREEN_BLACK   1   // Green with black background
@@ -76,14 +76,14 @@ int inputChar, previousChar, lastvalidChar = 0;
  */
 int main(int argc, char **argv) {
     debug_clear_log();  // Prepare the log file for a new program run
-
+    
     // Create and initialize windows
-    startWin = initscr();   // Initialize start screen window
+    initboard();   // Obtain terminal size and initialize window values
+    startWin = initscr();
     cbreak();               // Break when ctrl ^ c is pressed
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
-    keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
-    initboard();            // Obtain terminal size and initialize window values
+    keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input          
     snake_init();           // Initialize player snake values
 
     // If the current terminal does NOT support colored text
@@ -100,11 +100,15 @@ int main(int argc, char **argv) {
     init_pair(COLOR_GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);     // Green with black background
     init_pair(COLOR_WHITE_BLACK, COLOR_WHITE, COLOR_BLACK);     // White with black background
     init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
-    box(startWin, 0, 0);
-    char *startGame = "=====Start Game: Press s or S=====";
-    mvwprintw(startWin, maxrow/2, maxcol/2 - strlen(startGame)/2, startGame);
-    char *exitGame = "======Exit Game: Press Ctrl+C=====";
-    mvwprintw(startWin, maxrow/2 + 2, maxcol/2 - strlen(exitGame)/2, exitGame);
+    int yMax, xMax;
+    char startGame_text[] = "=====Start Game: Press s or S=====";
+    char ExitGame_text[] = "======Exit Game: Press Ctrl+C=====";
+    yMax=5;
+    xMax = (sizeof(startGame_text)>sizeof(ExitGame_text)?sizeof(startGame_text):sizeof(ExitGame_text)) +1;
+    startWin = newwin(yMax,xMax,maxrow/3,maxcol/3);
+    box(startWin,0,0);
+    mvwprintw(startWin, yMax/2-1, 1, startGame_text);
+    mvwprintw(startWin, yMax/2+1, 1,ExitGame_text);
     char ch = wgetch(startWin);
 
     while(ch){
@@ -274,7 +278,7 @@ void startsnakegame() {
         // Update the trophy's time spent alive (current time + 100ms)
         trophy_set_time(trophy_get_time() + 100);
         if (D) debug_log("mysnake::startsnakegame", "usleep");
-        usleep(DELAY);  // The speed of the snake game, 62.5 frames per second.
+        usleep(DELAY);  // The speed of the snake game, 10 frames per second.
     }
 
     werase(win);                                    // Erase the screen
@@ -316,7 +320,6 @@ void startsnakegame() {
 
         }
     }
-
     return;
 }
 

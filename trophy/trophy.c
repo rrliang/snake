@@ -67,7 +67,7 @@ void trophygen(int max_row, int max_col)
     // Reset the trophy's time alive
     trophy_time = 0;
     // Generate a trophy timeout between 1-9 seconds, as milliseconds
-    trophy_expiration = (rand() % TROPHY_EXPIRATION_MAX) * 1000;
+    trophy_expiration = (rand() % TROPHY_EXPIRATION_MAX+1) * 1000;
     if (trophy_expiration < 1000) {
       trophy_expiration = 1000;
     }
