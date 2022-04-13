@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
     char ExitGame_text[] = "======Exit Game: Press Ctrl+C=====";
     yMax=5;
     xMax = (sizeof(startGame_text)>sizeof(ExitGame_text)?sizeof(startGame_text):sizeof(ExitGame_text)) +1;
-    startWin = newwin(yMax,xMax,maxrow/3,maxcol/3);
+    startWin = newwin(yMax,xMax,maxrow/2-yMax/2,maxcol/2-xMax/2);
     box(startWin,0,0);
     mvwprintw(startWin, yMax/2-1, 1, startGame_text);
     mvwprintw(startWin, yMax/2+1, 1,ExitGame_text);
@@ -282,28 +282,35 @@ void startsnakegame() {
     }
 
     werase(win);                                    // Erase the screen
+    endwin();
+    refresh();
+    char *startagain = "=====Do you want to start again?=====";
+    char *startgame =  "===== Start Game: Press s or S ======";
+    char *exitstring = "====== Exit Game: Press Ctrl+C ======";
+    int height =7;
+    int width = strlen(endingmsg)>strlen(startagain)?strlen(endingmsg)+2:strlen(startagain)+2;//get the widest one
+    win = newwin(height,width,maxrow/2-height/2,maxcol/2-width/2);//create a new box
     wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
     box(win,0,0);                                   // Draw a white border
     attron(A_BLINK);                                // Blink the terminal screen
-
    // Prepare the ending message
-    mvprintw
-    (
-        maxrow/2-2,                                   // Center vertically
-        (maxcol/2)-(strlen(endingmsg)/2),           // Center horizontally
+    mvwprintw
+    (   win,
+        1,                                   // Center vertically
+        width/2-(strlen(endingmsg)/2),           // Center horizontally
         endingmsg                                   // Message to display
     );
 
-    mvprintw
-    (
-        maxrow/2+2-2,                                   // Center vertically
-        (maxcol/2)-(14/2),           // Center horizontally
+    mvwprintw
+    (   win,
+        2,                                   // Center vertically
+        width/2-8,           // Center horizontally
         "Your score: %d", snake_get_size()                                   // display score
     );
-
-    mvprintw(maxrow/2+4-2, (maxcol/2)-(strlen(endingmsg)/2), "=====Do you want to start again?=====");
-    mvprintw(maxrow/2+6-2, (maxcol/2)-(strlen(endingmsg)/2), "===== Start Game: Press s or S =====");
-    mvprintw(maxrow/2+8-2, (maxcol/2)-(strlen(endingmsg)/2), "====== Exit Game: Press Ctrl+C =====");
+    
+    mvwprintw(win,3, width/2-(strlen(startagain)/2), startagain);
+    mvwprintw(win,4, width/2-(strlen(startgame)/2), startgame);
+    mvwprintw(win,5, width/2-(strlen(exitstring)/2), exitstring);
 
     char ch = wgetch(win);
     while(ch){
@@ -336,7 +343,8 @@ int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard
 
 bool checkwon() {
     // Return true if size of snake is half of the terminal perimeter
-    return (snake_get_size() >= (maxcol + maxrow));
+    // return (snake_get_size() >= (maxcol + maxrow));
+    return (snake_get_size() >= 10);
 }
 
 
