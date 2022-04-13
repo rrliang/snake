@@ -31,7 +31,9 @@
 // Defines
 //****************************
 /* Game Times */
-#define DELAY              100000  // 100 milliseconds as microseconds
+#define PRIMARY_DELAY       134000  // 134 milliseconds as microseconds
+#define SECONDARY_DELAY     100000  // 100 milliseconds as microseconds
+#define TERTIARY_DELAY      66000   // 66 milliseconds as microseconds
 
 /* Colors = PRIMARY_BACKGROUND */
 #define COLOR_GREEN_BLACK   1   // Green with black background
@@ -49,14 +51,15 @@ char*   initialize(int);
 int     kbhit();
 void    startsnakegame();
 void    sig_int_handler(int);
-int quit();
+int     quit();
+int     get_game_speed();
 
 
 // Global Variables
 //****************************
 
 /* Verbose Debug Logging Flag */
-bool D = false;
+bool D = true;
 
 /* Window Attributes */
 WINDOW *startWin;       // Start screen window
@@ -115,10 +118,9 @@ int main(int argc, char **argv) {
     box(startWin,0,0);
     mvwprintw(startWin, yMax/2-1, 1, startGame_text);
     mvwprintw(startWin, yMax/2+1, 1,exitGame_text);
-    // char ch = wgetch(startWin);
 
     while(run){
-        if(D) debug_log("mysnake::main", "Main game loop beginning new iterration.");
+        if(D) debug_log("mysnake::main", "Main game loop beginning new iteration.");
         switch (wgetch(startWin)) {
             case 's':
             case 'S':
@@ -129,9 +131,6 @@ int main(int argc, char **argv) {
             case 'Q':
                 if (D) debug_log("mysnake::main", "Q pressed to quit game.");
                 run = FALSE;      // Quit the program
-                break;
-            default:
-                // ch = wgetch(win);
                 break;
         }
     }
@@ -277,10 +276,34 @@ void startsnakegame() {
         if (D) debug_log("mysnake::startsnakegame", "Snake did not hit self, continuing.");
         refresh();      // Refresh the screen
         if (D) debug_log("mysnake::startsnakegame", "incrementing totcounter.");
+        // Get the game speed
+        int speed_level = get_game_speed(); // Level of speed difficulty
+        unsigned int delay;
+        unsigned int time_inc;
+        switch (speed_level) {
+          case 0: // We're in the first 1/3 of the winning Score
+              delay = PRIMARY_DELAY;  // Move every 100ms (10/1 second)
+              time_inc = PRIMARY_DELAY/1000;
+              break;
+          case 1: // We're in the second 1/3 of the winning Score
+              delay = SECONDARY_DELAY;  // Move every 66ms ~(15/1 second)
+              time_inc = SECONDARY_DELAY/1000;
+              break;
+          case 2: // We're in the third 1/3 of the winning Score
+              delay = TERTIARY_DELAY;  // Move every 50ms (20/1 second)
+              time_inc = TERTIARY_DELAY/1000;
+              break;
+        }
+
+        if (D) {
+          char str[128];
+          sprintf(str, "Program times calculated, speed_level = %d, delay = %d, time_inc = %d", speed_level, delay, time_inc);
+          debug_log("mysnake::startsnakegame", str);
+        }
         // Update the trophy's time spent alive (current time + 100ms)
-        trophy_set_time(trophy_get_time() + 100);
+        trophy_set_time(trophy_get_time() + time_inc);
         if (D) debug_log("mysnake::startsnakegame", "usleep");
-        usleep(DELAY);  // The speed of the snake game, 10 frames per second.
+        usleep(delay);  // The speed of the snake game, 10 frames per second.
     }
 
     werase(win);                                    // Erase the screen
@@ -291,29 +314,28 @@ void startsnakegame() {
    // Prepare the ending message
     mvprintw
     (
-        maxrow/2-2,                                   // Center vertically
+        maxrow/2-2,                                 // Center vertically
         (maxcol/2)-(strlen(endingmsg)/2),           // Center horizontally
         endingmsg                                   // Message to display
     );
 
     mvprintw
     (
-        maxrow/2+2-2,                                   // Center vertically
-        (maxcol/2)-(14/2),           // Center horizontally
-        "Your score: %d", snake_get_size()                                   // display score
+        maxrow/2+2-2,                       // Center vertically
+        (maxcol/2)-(14/2),                  // Center horizontally
+        "Your score: %d", snake_get_size()  // display score
     );
 
     mvprintw(maxrow/2+4-2, (maxcol/2)-(strlen(endingmsg)/2), "=====Do you want to start again?=====");
     mvprintw(maxrow/2+6-2, (maxcol/2)-(strlen(endingmsg)/2), "===== Start Game: Press s or S =====");
     mvprintw(maxrow/2+8-2, (maxcol/2)-(strlen(endingmsg)/2), "====== Exit Game: Press q or Q =====");
 
-    // char ch = wgetch(win);
     while(run){
         switch (wgetch(win)) {
             case 's':
             case 'S':
                 if (D) debug_log("mysnake::startsnakegame", "S pressed to continue game.");
-                attroff(A_BLINK);  // Blink the terminal screen
+                attroff(A_BLINK);  // Turn off the terminal blinking
                 snake_init();
                 startsnakegame();
                 break;
@@ -322,10 +344,6 @@ void startsnakegame() {
                 if (D) debug_log("mysnake::startsnakegame", "Q pressed to quit game.");
                 run = FALSE;
                 break;
-            default:
-                // ch = wgetch(win);
-                break;
-
         }
     }
     return;
@@ -432,3 +450,23 @@ void sig_int_handler(int sig_num) {
    snake_free_j_body();
    return EXIT_SUCCESS;
  }
+
+ /**
+  * Get the appropriate game speed level
+  * This is based off of the player's score (snake length)
+  *
+  * @returns  int - Speed level of the game
+  */
+  int get_game_speed() {
+      int score = snake_get_size();       // Current Score
+      int winningScore = maxrow + maxcol; // Winning Score
+      if (score >= (winningScore / 3) * 2) {
+        return 2;
+      }
+      else if (score >= winningScore / 3) {
+        return 1;
+      }
+      else {
+        return 0;
+      }
+  }

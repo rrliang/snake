@@ -158,6 +158,11 @@ int trophy_get_time()
 
 void trophy_set_time(int time)
 {
+    if (trophy_D) {
+      char str[64];
+      sprintf(str, "time = %d", time);
+      debug_log("trophy::trophy_set_time", str);
+    }
     trophy_time = time;
 }
 
