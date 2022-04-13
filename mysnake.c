@@ -40,9 +40,6 @@
 #define COLOR_WHITE_BLACK   2   // White with black background
 #define COLOR_YELLOW_BLACK  3   // Yellow with black background
 
-/* Game driver loop test (Infinite) */
-#define ACTIVE              1
-
 // Prototype Functions
 //****************************
 bool    checkwon();
@@ -59,18 +56,20 @@ int     get_game_speed();
 //****************************
 
 /* Verbose Debug Logging Flag */
-bool D = true;
+bool D = false;
 
 /* Window Attributes */
 WINDOW *startWin;       // Start screen window
 WINDOW *win;            // ncurses window struct
-int maxrow;             // Maximum number of rows in the game grid
-int maxcol;             // Maximum number of columns in the game grid
-bool resize;            // Window resizable flag
-bool run = true;        // Whether or not to continue running the program
+int     maxrow;         // Maximum number of rows in the game grid
+int     maxcol;         // Maximum number of columns in the game grid
+bool    resize;         // Window resizable flag
 
 /* Key Press Trackers */
 int inputChar, previousChar, lastvalidChar = 0;
+
+/* Program Attributes */
+bool  run = true;         // Whether or not to continue running the program
 
 
 /**
@@ -131,6 +130,13 @@ int main(int argc, char **argv) {
             case 'Q':
                 if (D) debug_log("mysnake::main", "Q pressed to quit game.");
                 run = FALSE;      // Quit the program
+                break;
+            default:
+                if (D) {
+                    char str[64];
+                    sprintf(str, "Unrecognized character int value= %u", inputChar);
+                    debug_log("mysnake::main", str);
+                }
                 break;
         }
     }
@@ -343,6 +349,13 @@ void startsnakegame() {
             case 'Q':
                 if (D) debug_log("mysnake::startsnakegame", "Q pressed to quit game.");
                 run = FALSE;
+                break;
+            default:
+                if (D) {
+                    char str[64];
+                    sprintf(str, "Unrecognized character int value= %u", inputChar);
+                    debug_log("mysnake::main", str);
+                }
                 break;
         }
     }
