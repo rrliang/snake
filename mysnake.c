@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     char startGame_text[] = "=====Start Game: Press s or S=====";
     char exitGame_text[] = "======Exit Game: Press q or Q=====";
     yMax=5;
-    xMax = (sizeof(startGame_text)>sizeof(ExitGame_text)?sizeof(startGame_text):sizeof(ExitGame_text)) +1;
+    xMax = (sizeof(startGame_text)>sizeof(exitGame_text)?sizeof(startGame_text):sizeof(exitGame_text)) +1;
     startWin = newwin(yMax,xMax,maxrow/2-yMax/2,maxcol/2-xMax/2);
     box(startWin,0,0);
     mvwprintw(startWin, yMax/2-1, 1, startGame_text);
