@@ -20,6 +20,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <signal.h>
 
 // Project Includes
 //****************************
@@ -47,6 +48,8 @@ void    initboard();
 char*   initialize(int);
 int     kbhit();
 void    startsnakegame();
+void    sig_int_handler(int);
+int quit();
 
 
 // Global Variables
@@ -61,6 +64,7 @@ WINDOW *win;            // ncurses window struct
 int maxrow;             // Maximum number of rows in the game grid
 int maxcol;             // Maximum number of columns in the game grid
 bool resize;            // Window resizable flag
+bool run = true;        // Whether or not to continue running the program
 
 /* Key Press Trackers */
 int inputChar, previousChar, lastvalidChar = 0;
@@ -76,6 +80,7 @@ int inputChar, previousChar, lastvalidChar = 0;
  */
 int main(int argc, char **argv) {
     debug_clear_log();  // Prepare the log file for a new program run
+    signal(SIGINT, sig_int_handler); // Prevent Ctrl+C presses from quitting.
 
     // Create and initialize windows
     initboard();   // Obtain terminal size and initialize window values
@@ -103,40 +108,34 @@ int main(int argc, char **argv) {
     // The start screen is smaller and centered
     int yMax, xMax;
     char startGame_text[] = "=====Start Game: Press s or S=====";
-    char exitGame_text[] = "======Exit Game: Press Ctrl+C=====";
+    char exitGame_text[] = "======Exit Game: Press q or Q=====";
     yMax=5;
     xMax = (sizeof(startGame_text)>sizeof(exitGame_text)?sizeof(startGame_text):sizeof(exitGame_text)) +1;
     startWin = newwin(yMax,xMax,maxrow/3,maxcol/3);
     box(startWin,0,0);
     mvwprintw(startWin, yMax/2-1, 1, startGame_text);
     mvwprintw(startWin, yMax/2+1, 1,exitGame_text);
-    char ch = wgetch(startWin);
+    // char ch = wgetch(startWin);
 
-    while(ch){
+    while(run){
         if(D) debug_log("mysnake::main", "Main game loop beginning new iterration.");
-        switch (ch) {
+        switch (wgetch(startWin)) {
             case 's':
             case 'S':
-                startsnakegame();
+                if (D) debug_log("mysnake::main", "S pressed to start game.");
+                startsnakegame(); // Start the snake game
+                break;
+            case 'q':
+            case 'Q':
+                if (D) debug_log("mysnake::main", "Q pressed to quit game.");
+                run = FALSE;      // Quit the program
                 break;
             default:
-                ch = wgetch(win);
+                // ch = wgetch(win);
                 break;
         }
     }
-
-    refresh();
-    // usleep(1000000);
-
-    // Clean up and exit
-    delwin(win);
-    endwin();
-    refresh();
-
-    // Free the snake body arrays in memory
-    snake_free_i_body();
-    snake_free_j_body();
-    return EXIT_SUCCESS;
+    return quit();
 }
 
 
@@ -182,7 +181,7 @@ void startsnakegame() {
     trophy_gen(maxrow, maxcol);
 
     // Main snake game loop
-    while (ACTIVE) {
+    while (run) {
         // Draw game borders
         werase(win);                                    // Erase the screen
         wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
@@ -306,19 +305,25 @@ void startsnakegame() {
 
     mvprintw(maxrow/2+4-2, (maxcol/2)-(strlen(endingmsg)/2), "=====Do you want to start again?=====");
     mvprintw(maxrow/2+6-2, (maxcol/2)-(strlen(endingmsg)/2), "===== Start Game: Press s or S =====");
-    mvprintw(maxrow/2+8-2, (maxcol/2)-(strlen(endingmsg)/2), "====== Exit Game: Press Ctrl+C =====");
+    mvprintw(maxrow/2+8-2, (maxcol/2)-(strlen(endingmsg)/2), "====== Exit Game: Press q or Q =====");
 
-    char ch = wgetch(win);
-    while(ch){
-        switch (ch) {
+    // char ch = wgetch(win);
+    while(run){
+        switch (wgetch(win)) {
             case 's':
             case 'S':
+                if (D) debug_log("mysnake::startsnakegame", "S pressed to continue game.");
                 attroff(A_BLINK);  // Blink the terminal screen
                 snake_init();
                 startsnakegame();
                 break;
+            case 'q':
+            case 'Q':
+                if (D) debug_log("mysnake::startsnakegame", "Q pressed to quit game.");
+                run = FALSE;
+                break;
             default:
-                ch = wgetch(win);
+                // ch = wgetch(win);
                 break;
 
         }
@@ -400,3 +405,30 @@ void initboard() {
     snake_set_curr_i(maxrow/2);
     snake_set_curr_j(maxcol/2);
 }
+
+/*
+ * Signal Handler for SIGINT (Ctrl+C)
+ * This receives any signaling for Ctrl+C and throws it out.
+ * Effectively preventing the user from quitting the program
+ * with Ctrl+C.
+ */
+void sig_int_handler(int sig_num) {
+    // Reset handler
+    signal(SIGINT, sig_int_handler);
+    fflush(stdout);
+}
+
+/**
+ * Quit the program
+ */
+ int quit() {
+   // Clean up and exit
+   delwin(win);
+   delwin(startWin);
+   endwin();
+
+   // Free the snake body arrays in memory
+   snake_free_i_body();
+   snake_free_j_body();
+   return EXIT_SUCCESS;
+ }
