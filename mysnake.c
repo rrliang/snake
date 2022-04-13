@@ -20,6 +20,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <signal.h>
 
 // Project Includes
 //****************************
@@ -30,15 +31,14 @@
 // Defines
 //****************************
 /* Game Times */
-#define DELAY              300000  // 100 milliseconds as microseconds
+#define PRIMARY_DELAY       134000  // 134 milliseconds as microseconds
+#define SECONDARY_DELAY     100000  // 100 milliseconds as microseconds
+#define TERTIARY_DELAY      66000   // 66 milliseconds as microseconds
 
 /* Colors = PRIMARY_BACKGROUND */
 #define COLOR_GREEN_BLACK   1   // Green with black background
 #define COLOR_WHITE_BLACK   2   // White with black background
 #define COLOR_YELLOW_BLACK  3   // Yellow with black background
-
-/* Game driver loop test (Infinite) */
-#define ACTIVE              1
 
 // Prototype Functions
 //****************************
@@ -47,6 +47,9 @@ void    initboard();
 char*   initialize(int);
 int     kbhit();
 void    startsnakegame();
+void    sig_int_handler(int);
+int     quit();
+int     get_game_speed();
 
 
 // Global Variables
@@ -58,12 +61,15 @@ bool D = false;
 /* Window Attributes */
 WINDOW *startWin;       // Start screen window
 WINDOW *win;            // ncurses window struct
-int maxrow;             // Maximum number of rows in the game grid
-int maxcol;             // Maximum number of columns in the game grid
-bool resize;            // Window resizable flag
+int     maxrow;         // Maximum number of rows in the game grid
+int     maxcol;         // Maximum number of columns in the game grid
+bool    resize;         // Window resizable flag
 
 /* Key Press Trackers */
 int inputChar, previousChar, lastvalidChar = 0;
+
+/* Program Attributes */
+bool  run = true;         // Whether or not to continue running the program
 
 
 /**
@@ -76,14 +82,15 @@ int inputChar, previousChar, lastvalidChar = 0;
  */
 int main(int argc, char **argv) {
     debug_clear_log();  // Prepare the log file for a new program run
-    
+    signal(SIGINT, sig_int_handler); // Prevent Ctrl+C presses from quitting.
+
     // Create and initialize windows
     initboard();   // Obtain terminal size and initialize window values
     startWin = initscr();
     cbreak();               // Break when ctrl ^ c is pressed
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
-    keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input          
+    keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
     snake_init();           // Initialize player snake values
 
     // If the current terminal does NOT support colored text
@@ -100,42 +107,40 @@ int main(int argc, char **argv) {
     init_pair(COLOR_GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);     // Green with black background
     init_pair(COLOR_WHITE_BLACK, COLOR_WHITE, COLOR_BLACK);     // White with black background
     init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
+    // The start screen is smaller and centered
     int yMax, xMax;
     char startGame_text[] = "=====Start Game: Press s or S=====";
-    char ExitGame_text[] = "======Exit Game: Press Ctrl+C=====";
+    char exitGame_text[] = "======Exit Game: Press q or Q=====";
     yMax=5;
     xMax = (sizeof(startGame_text)>sizeof(ExitGame_text)?sizeof(startGame_text):sizeof(ExitGame_text)) +1;
     startWin = newwin(yMax,xMax,maxrow/2-yMax/2,maxcol/2-xMax/2);
     box(startWin,0,0);
     mvwprintw(startWin, yMax/2-1, 1, startGame_text);
-    mvwprintw(startWin, yMax/2+1, 1,ExitGame_text);
-    char ch = wgetch(startWin);
+    mvwprintw(startWin, yMax/2+1, 1,exitGame_text);
 
-    while(ch){
-        if(D) debug_log("mysnake::main", "Main game loop beginning new iterration.");
-        switch (ch) {
+    while(run){
+        if(D) debug_log("mysnake::main", "Main game loop beginning new iteration.");
+        switch (wgetch(startWin)) {
             case 's':
             case 'S':
-                startsnakegame();
+                if (D) debug_log("mysnake::main", "S pressed to start game.");
+                startsnakegame(); // Start the snake game
+                break;
+            case 'q':
+            case 'Q':
+                if (D) debug_log("mysnake::main", "Q pressed to quit game.");
+                run = FALSE;      // Quit the program
                 break;
             default:
-                ch = wgetch(win);
+                if (D) {
+                    char str[64];
+                    sprintf(str, "Unrecognized character int value= %u", inputChar);
+                    debug_log("mysnake::main", str);
+                }
                 break;
         }
     }
-
-    refresh();
-    usleep(10000000);
-
-    // Clean up and exit
-    delwin(win);
-    endwin();
-    refresh();
-
-    // Free the snake body arrays in memory
-    snake_free_i_body();
-    snake_free_j_body();
-    return EXIT_SUCCESS;
+    return quit();
 }
 
 
@@ -178,10 +183,10 @@ void startsnakegame() {
     }
 
     // Generate an initial trophy
-    trophygen(maxrow, maxcol);
+    trophy_gen(maxrow, maxcol);
 
     // Main snake game loop
-    while (ACTIVE) {
+    while (run) {
         // Draw game borders
         werase(win);                                    // Erase the screen
         wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
@@ -205,8 +210,10 @@ void startsnakegame() {
 
         // If the trophy has expired
         if (trophy_get_time() >= trophy_get_expiration()) {
+            if (D) debug_log("mysnake::startsnakegame", "trophy_time has reached it's expiration. Generating a new Trophy.");
             // Generate a new trophy
-            trophygen(maxrow, maxcol);
+            trophy_gen(maxrow, maxcol);
+            if (D) debug_log("mysnake::startsnakegame", "Finished generating a new trophy.");
         }
 
         // Print the trophy to the screen
@@ -215,7 +222,7 @@ void startsnakegame() {
         (
             trophy_get_i(),       // The trophy's y coord
             trophy_get_j(),       // The trophy's x coord
-            "%d",           // The trophy
+            "%d",                 // The trophy
             trophy_get_value()    // Value of the trophy
         );
 
@@ -232,7 +239,7 @@ void startsnakegame() {
         // Check to see if the snake has run into the trophy
         if (checktrophy(snake_get_curr_i(), snake_get_curr_j())) {
             snake_grow();
-            trophygen(maxrow, maxcol);
+            trophy_gen(maxrow, maxcol);
             resize = true;
         } else {
 
@@ -275,10 +282,34 @@ void startsnakegame() {
         if (D) debug_log("mysnake::startsnakegame", "Snake did not hit self, continuing.");
         refresh();      // Refresh the screen
         if (D) debug_log("mysnake::startsnakegame", "incrementing totcounter.");
+        // Get the game speed
+        int speed_level = get_game_speed(); // Level of speed difficulty
+        unsigned int delay;
+        unsigned int time_inc;
+        switch (speed_level) {
+          case 0: // We're in the first 1/3 of the winning Score
+              delay = PRIMARY_DELAY;  // Move every 100ms (10/1 second)
+              time_inc = PRIMARY_DELAY/1000;
+              break;
+          case 1: // We're in the second 1/3 of the winning Score
+              delay = SECONDARY_DELAY;  // Move every 66ms ~(15/1 second)
+              time_inc = SECONDARY_DELAY/1000;
+              break;
+          case 2: // We're in the third 1/3 of the winning Score
+              delay = TERTIARY_DELAY;  // Move every 50ms (20/1 second)
+              time_inc = TERTIARY_DELAY/1000;
+              break;
+        }
+
+        if (D) {
+          char str[128];
+          sprintf(str, "Program times calculated, speed_level = %d, delay = %d, time_inc = %d", speed_level, delay, time_inc);
+          debug_log("mysnake::startsnakegame", str);
+        }
         // Update the trophy's time spent alive (current time + 100ms)
-        trophy_set_time(trophy_get_time() + 100);
+        trophy_set_time(trophy_get_time() + time_inc);
         if (D) debug_log("mysnake::startsnakegame", "usleep");
-        usleep(DELAY);  // The speed of the snake game, 10 frames per second.
+        usleep(delay);  // The speed of the snake game, 10 frames per second.
     }
 
     werase(win);                                    // Erase the screen
@@ -307,24 +338,32 @@ void startsnakegame() {
         width/2-8,           // Center horizontally
         "Your score: %d", snake_get_size()                                   // display score
     );
-    
+
     mvwprintw(win,3, width/2-(strlen(startagain)/2), startagain);
     mvwprintw(win,4, width/2-(strlen(startgame)/2), startgame);
     mvwprintw(win,5, width/2-(strlen(exitstring)/2), exitstring);
 
-    char ch = wgetch(win);
-    while(ch){
-        switch (ch) {
+    while(run){
+        switch (wgetch(win)) {
             case 's':
             case 'S':
-                attroff(A_BLINK);  // Blink the terminal screen
+                if (D) debug_log("mysnake::startsnakegame", "S pressed to continue game.");
+                attroff(A_BLINK);  // Turn off the terminal blinking
                 snake_init();
                 startsnakegame();
                 break;
-            default:
-                ch = wgetch(win);
+            case 'q':
+            case 'Q':
+                if (D) debug_log("mysnake::startsnakegame", "Q pressed to quit game.");
+                run = FALSE;
                 break;
-
+            default:
+                if (D) {
+                    char str[64];
+                    sprintf(str, "Unrecognized character int value= %u", inputChar);
+                    debug_log("mysnake::main", str);
+                }
+                break;
         }
     }
     return;
@@ -405,3 +444,50 @@ void initboard() {
     snake_set_curr_i(maxrow/2);
     snake_set_curr_j(maxcol/2);
 }
+
+/*
+ * Signal Handler for SIGINT (Ctrl+C)
+ * This receives any signaling for Ctrl+C and throws it out.
+ * Effectively preventing the user from quitting the program
+ * with Ctrl+C.
+ */
+void sig_int_handler(int sig_num) {
+    // Reset handler
+    signal(SIGINT, sig_int_handler);
+    fflush(stdout);
+}
+
+/**
+ * Quit the program
+ */
+ int quit() {
+   // Clean up and exit
+   delwin(win);
+   delwin(startWin);
+   endwin();
+
+   // Free the snake body arrays in memory
+   snake_free_i_body();
+   snake_free_j_body();
+   return EXIT_SUCCESS;
+ }
+
+ /**
+  * Get the appropriate game speed level
+  * This is based off of the player's score (snake length)
+  *
+  * @returns  int - Speed level of the game
+  */
+  int get_game_speed() {
+      int score = snake_get_size();       // Current Score
+      int winningScore = maxrow + maxcol; // Winning Score
+      if (score >= (winningScore / 3) * 2) {
+        return 2;
+      }
+      else if (score >= winningScore / 3) {
+        return 1;
+      }
+      else {
+        return 0;
+      }
+  }
