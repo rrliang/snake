@@ -382,8 +382,8 @@ int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard
 
 bool checkwon() {
     // Return true if size of snake is half of the terminal perimeter
-    // return (snake_get_size() >= (maxcol + maxrow));
-    return (snake_get_size() >= 10);
+    return (snake_get_size() >= (maxcol + maxrow));
+    //return (snake_get_size() >= 10);
 }
 
 
