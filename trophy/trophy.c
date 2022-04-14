@@ -28,7 +28,7 @@
 #define TROPHY_EXPIRATION_MAX   9 // 9 seconds
 
 /* Verbose Debug Logging Flag */
-bool trophy_D = true;
+bool trophy_D = false;
 
 // Attributes
 //****************************

@@ -87,7 +87,6 @@ int main(int argc, char **argv) {
     // Create and initialize windows
     initboard();   // Obtain terminal size and initialize window values
     startWin = initscr();
-    cbreak();               // Break when ctrl ^ c is pressed
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
     keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
@@ -109,8 +108,8 @@ int main(int argc, char **argv) {
     init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
     // The start screen is smaller and centered
     int yMax, xMax;
-    char startGame_text[] = "=====Start Game: Press s or S=====";
-    char exitGame_text[] = "======Exit Game: Press q or Q=====";
+    char startGame_text[] = "===== Start Game: Press s or S =====";
+    char exitGame_text[] =  "====== Exit Game: Press q or Q =====";
     yMax=5;
     xMax = (sizeof(startGame_text)>sizeof(exitGame_text)?sizeof(startGame_text):sizeof(exitGame_text)) +1;
     startWin = newwin(yMax,xMax,maxrow/2-yMax/2,maxcol/2-xMax/2);
@@ -120,7 +119,8 @@ int main(int argc, char **argv) {
 
     while(run){
         if(D) debug_log("mysnake::main", "Main game loop beginning new iteration.");
-        switch (wgetch(startWin)) {
+        inputChar = wgetch(startWin);
+        switch (inputChar) {
             case 's':
             case 'S':
                 if (D) debug_log("mysnake::main", "S pressed to start game.");
@@ -315,9 +315,9 @@ void startsnakegame() {
     werase(win);                                    // Erase the screen
     endwin();
     refresh();
-    char *startagain = "=====Do you want to start again?=====";
+    char *startagain = "==== Do you want to start again? ====";
     char *startgame =  "===== Start Game: Press s or S ======";
-    char *exitstring = "====== Exit Game: Press Ctrl+C ======";
+    char *exitstring = "====== Exit Game: Press q or Q ======";
     int height =7;
     int width = strlen(endingmsg)>strlen(startagain)?strlen(endingmsg)+2:strlen(startagain)+2;//get the widest one
     win = newwin(height,width,maxrow/2-height/2,maxcol/2-width/2);//create a new box
@@ -344,7 +344,8 @@ void startsnakegame() {
     mvwprintw(win,5, width/2-(strlen(exitstring)/2), exitstring);
 
     while(run){
-        switch (wgetch(win)) {
+      char inputChar = wgetch(win);
+        switch (inputChar) {
             case 's':
             case 'S':
                 if (D) debug_log("mysnake::startsnakegame", "S pressed to continue game.");
