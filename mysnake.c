@@ -81,7 +81,7 @@ bool  run = true;         // Whether or not to continue running the program
  * @param av    - Array of additional arguments passed to the game
  */
 int main(int argc, char **argv) {
-    debug_clear_log();  // Prepare the log file for a new program run
+    if (D) debug_clear_log();  // Prepare the log file for a new program run
     signal(SIGINT, sig_int_handler); // Prevent Ctrl+C presses from quitting.
 
     // Create and initialize windows
