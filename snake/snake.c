@@ -42,6 +42,8 @@ int counter;        // Current snake body refresh index
  * Grow the Snake
  * Grow the snake by reallocating additional space
  * to the snake's body arrays.
+ *
+ * @author Jiaxin Jiang
  */
 void snake_grow() {
     if(snake_D) debug_log("snake::snake_grow", "Growing the snake");
@@ -73,6 +75,8 @@ void snake_grow() {
  * Update the coordinates of the snake
  * body arrays in preparation for drawing
  * on the screen.
+ *
+ * @author Rachel Liang
  */
 void snake_move() {
     if(snake_D) debug_log("snake::snake_move", "Moving the snake");
@@ -102,6 +106,8 @@ void snake_move() {
 
 /*
  * Print the snake body onto screen.
+ *
+ *@author Rachel Liang
  */
 void snake_print() {
     if(snake_D) {
@@ -125,6 +131,8 @@ void snake_print() {
 
 /*
  * Check to see if the snake hit itself
+ *
+ * @author Jiaxin Jiang
  */
 bool snake_did_snake_hit_self() {
     if(snake_D) debug_log("snake::snake_did_snake_hit_self", "Checking if the snake hit itself.");
@@ -138,7 +146,9 @@ bool snake_did_snake_hit_self() {
 
 
 /*
- * Initialize the snakebody arrays
+ * Initialize the snakebody arrays.
+ *
+ * @author Joseph Lumpkin
  */
 void snake_init() {
     if(snake_D) debug_log("snake::snake_init", "Initializing the snake body arrays.");
@@ -152,23 +162,6 @@ void snake_init() {
     if (snakebodyi == NULL)
         return;
 }
-
-
-/**
- * Reinitialize the snake body arrays.
- * Reset the snake counter
- */
-// void snake_reinitialize() {
-//     if(snake_D) debug_log("snake::snake_reinitialize", "Reinitializing the snake body arrays.");
-//     counter = 0;
-//     snakebodyi=realloc(snakebodyi, snake_size * sizeof(int));
-//         if (snakebodyi == NULL)
-//             return;
-//
-//         snakebodyj=realloc(snakebodyj, snake_size * sizeof(int));
-//         if (snakebodyj == NULL)
-//             return;
-// }
 
 // Accessors and Mutators
 //****************************

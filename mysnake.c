@@ -43,8 +43,8 @@
 // Prototype Functions
 //****************************
 bool    checkwon();
-void    initboard();
-char*   initialize(int);
+void    initWindowAttributes();
+char*   updateSnakeHead(int);
 int     kbhit();
 void    startsnakegame();
 void    sig_int_handler(int);
@@ -73,9 +73,11 @@ bool  run = true;         // Whether or not to continue running the program
 
 
 /**
- * Snake game driver.
- * This contains the game's main loop function
- * and drives the game.
+ * Snake program driver.
+ * This contains the program's main loop function
+ * and sets up / destroys the game.
+ *
+ * @author Jiaxin Jiang
  *
  * @param ac    - Number of arguments passed to the main function
  * @param av    - Array of additional arguments passed to the game
@@ -85,7 +87,7 @@ int main(int argc, char **argv) {
     signal(SIGINT, sig_int_handler); // Prevent Ctrl+C presses from quitting.
 
     // Create and initialize windows
-    initboard();   // Obtain terminal size and initialize window values
+    initWindowAttributes();   // Obtain terminal size and initialize window values
     startWin = initscr();
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
@@ -144,6 +146,14 @@ int main(int argc, char **argv) {
 }
 
 
+/**
+ * Snake game driver
+ * Contains the game's main while loop
+ * and calls all functions necessary for
+ * processing gameplay.
+ *
+ * @author Rachel Liang
+ */
 void startsnakegame() {
     if(D) debug_log("mysnake::startsnakegame", "Starting the snake game.");
 
@@ -152,7 +162,7 @@ void startsnakegame() {
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
     keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
-    initboard();            // Obtain terminal size and initialize window values
+    initWindowAttributes();            // Obtain terminal size and initialize window values
     snake_init();           // Initialize player snake values
 
     // Seed the rand() function using the current system time
@@ -252,7 +262,7 @@ void startsnakegame() {
         (
             snake_get_curr_i(),               // Current snake head y coord
             snake_get_curr_j(),               // Current snake head x coord
-            initialize(inputChar)   // Snake head
+            updateSnakeHead(inputChar)   // Snake head
         );
 
         // If the user presses any button
@@ -371,7 +381,15 @@ void startsnakegame() {
 }
 
 
-int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
+/**
+ * Detect and retrieve keypresses without
+ * pausing the program.
+ *
+ * @author Rachel Liang
+ * Work based on:
+ *      https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
+ */
+int kbhit()
 {
     struct timeval tv = { 0L, 0L };
     fd_set fds;
@@ -381,6 +399,11 @@ int kbhit() //https://stackoverflow.com/questions/448944/c-non-blocking-keyboard
 }
 
 
+/**
+ * Check to see if the player has won the game.
+ *
+ * @author Jiaxin Jiang
+ */
 bool checkwon() {
     // Return true if size of snake is half of the terminal perimeter
     return (snake_get_size() >= (maxcol + maxrow));
@@ -388,8 +411,13 @@ bool checkwon() {
 }
 
 
-/* change the coordinates of the snake head depending on which direction/arrow key has been pressed */
-char* initialize(int inputChar) {
+/**
+ * Change the coordinates of the snake head
+ * depending on which direction/arrow key has been pressed.
+ *
+ * @author Rachel Liang
+ */
+char* updateSnakeHead(int inputChar) {
     char* c;
     switch(inputChar) {
         case KEY_UP:
@@ -436,8 +464,13 @@ char* initialize(int inputChar) {
 }
 
 
-/* get the size of the terminal */
-void initboard() {
+/**
+ * Get the size of the terminal
+ * and initialize global terminal variables.
+ *
+ * @author Rachel Liang
+ */
+void initWindowAttributes() {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
     maxrow = w.ws_row-3;
@@ -451,6 +484,8 @@ void initboard() {
  * This receives any signaling for Ctrl+C and throws it out.
  * Effectively preventing the user from quitting the program
  * with Ctrl+C.
+ *
+ * @author Joseph Lumpkin
  */
 void sig_int_handler(int sig_num) {
     // Reset handler
@@ -460,6 +495,8 @@ void sig_int_handler(int sig_num) {
 
 /**
  * Quit the program
+ *
+ * @author Joseph Lumpkin
  */
  int quit() {
    // Clean up and exit
@@ -476,6 +513,8 @@ void sig_int_handler(int sig_num) {
  /**
   * Get the appropriate game speed level
   * This is based off of the player's score (snake length)
+  *
+  * @author Joseph Lumpkin
   *
   * @returns  int - Speed level of the game
   */

@@ -27,6 +27,8 @@
  * Ex:
  *     debug_log("testtag:", "Test message");
  *
+ * @author Joseph Lumpkin
+ *
  * @param tag       - Label identifying the calling function.
  *                      (Usually the file::functionname)
  * @param message   - Message to print to the log file.
@@ -51,6 +53,8 @@ void debug_log(char* tag, char* message) {
 /**
  * Clear the log file in preparation
  * for a new run of the program.
+ *
+ * @author Jiaxin Jiang
  */
 void debug_clear_log() {
     // Attempt to create a new log file

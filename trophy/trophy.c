@@ -43,6 +43,8 @@ int trophy_expiration;  // Trophy expiration boundary in milliseconds
 
 /**
  * Check whether or not the snake head has reached the trophy.
+ *
+ * @author Rachel Liang
  */
 bool checktrophy(int currenti, int currentj) {
     // If the snake head coords are same as the trophy coords
@@ -56,6 +58,8 @@ bool checktrophy(int currenti, int currentj) {
  * Generate a new trophy to replace the current trophy.
  * Trophy will have a value (1-9),
  * and be randomly generated somewhere in the snakepit.
+ *
+ * @author Joseph Lumpkin
  */
 void trophy_gen(int max_row, int max_col)
 {
