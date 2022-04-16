@@ -81,43 +81,19 @@ void trophy_gen(int max_row, int max_col)
     // Check if randomly generated trophy coordinates clash with existing snake
     // head and body if yes, regenerate the random coordinate,
     // otherwise exit loop.
-    bool inotsame = false;
-    bool jnotsame = false;
-    while (inotsame) {
-        // Random x coord for trophy does not clash with snake head
-        bool isamecurrent = (trophy_i != snake_get_curr_i());
-        bool inotsamebody = true;
-        for (int i = 0; i < snake_get_size() - 1 ; i++) {
-            // If random x coord for trophy is not part of the snake body
-            if (trophy_i == snake_get_i_at(i) || trophy_i >= max_row) {
-                inotsamebody = false;
-                break;
-            }
-        }
-        if (inotsame && inotsamebody) {
-            inotsame = true;
-        } else {
-            trophy_i = 1 + (rand() % ((max_row-2)));
+    bool spaceTaken = false;
+
+    for (int i = 0; i < snake_get_size() - 1; i++) {
+        int snakeX = snake_get_j_at(i);
+        int snakeY = snake_get_i_at(i);
+        if (trophy_i == snakeY && trophy_j == snakeX) {
+            spaceTaken = true;
+            break;
         }
     }
 
-    while (jnotsame) {
-        // Random y coord for trophy does not clash with snake head
-        bool jsamecurrent = (trophy_j != snake_get_curr_j());
-        bool jnotsamebody = true;
-        for (int i = 0; i < snake_get_size() - 1 ; i++) {
-            // Random y coord for trophy is not part of the snake body
-            if (trophy_j == snake_get_j_at(i) || trophy_j >= max_col) {
-                jnotsamebody = false;
-                break;
-            }
-        }
-        if (jnotsame && jnotsamebody) {
-            jnotsame = true;
-        } else {
-            trophy_j = 1 + (rand() % ((max_col-2)));
-        }
-    }
+    if (spaceTaken)
+        trophy_gen(maxrow, maxcol);
 }
 
 // Accessors and Mutators
