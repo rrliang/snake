@@ -97,7 +97,7 @@ void trophy_gen(int max_row, int max_col)
     }
 
     if (spaceTaken)
-        trophy_gen(maxrow, maxcol);
+        trophy_gen(max_row, max_col);
 }
 
 // Accessors and Mutators
