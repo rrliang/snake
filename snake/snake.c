@@ -36,7 +36,7 @@ int previous_j;     // Previous x value for the snake head
 int *snakebodyi;    // Snake body y values : index = distance from head, value = grid coord
 int *snakebodyj;    // Snake body x values : index = distance from head, value = grid coord
 int counter;        // Current snake body refresh index
-
+extern int snakesize_init;
 
 /**
  * Grow the Snake
@@ -153,7 +153,7 @@ bool snake_did_snake_hit_self() {
 void snake_init() {
     if(snake_D) debug_log("snake::snake_init", "Initializing the snake body arrays.");
     counter = 0;
-    snake_size = 5;
+    snake_size = snakesize_init-'0';
     snakebodyi = malloc(snake_size * sizeof(int));
     if (snakebodyi == NULL)
         return;

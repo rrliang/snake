@@ -23,17 +23,19 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
-
+#include <stdbool.h>
+#include <signal.h>
 // Project Includes
 //****************************
 #include "debug/debug.h"
 #include "snake/snake.h"
 #include "trophy/trophy.h"
+// #include "menu/menu.h"
 
 // Defines
 //****************************
 /* Game Times */
-#define PRIMARY_DELAY       134000  // 134 milliseconds as microseconds
+// #define PRIMARY_DELAY       134000  // 134 milliseconds as microseconds
 #define SECONDARY_DELAY     100000  // 100 milliseconds as microseconds
 #define TERTIARY_DELAY      66000   // 66 milliseconds as microseconds
 
@@ -66,14 +68,14 @@ void    sig_int_handler(int);
 int     quit();
 int     getGamepadInput();
 int     get_game_speed();
-
+void menu();
 
 // Global Variables
 //****************************
 
 /* Verbose Debug Logging Flag */
 bool D = false;
-
+int PRIMARY_DELAY;
 /* Window Attributes */
 WINDOW *startWin;       // Start screen window
 WINDOW *win;            // ncurses window struct
@@ -87,6 +89,10 @@ int inputChar, previousChar, lastvalidChar = 0;
 /* Program Attributes */
 bool    run = true;     // Whether or not to continue running the program
 
+//menu
+int snakesize_init;
+char snake_speed_choice_primary;
+int primary_custom;
 
 /**
  * Snake program driver.
@@ -116,14 +122,12 @@ int main(int ac, char *av[]) {
     }
 
     signal(SIGINT, sig_int_handler); // Prevent Ctrl+C presses from quitting.
-
     // Create and initialize windows
-    initWindowAttributes(); // Obtain terminal size and initialize window values
-    startWin = initscr();
+    initWindowAttributes();   // Obtain terminal size and initialize window values
+    initscr();
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
     keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
-    snake_init();           // Initialize player snake values
 
     // If the current terminal does NOT support colored text
     if(has_colors() == FALSE)
@@ -139,7 +143,11 @@ int main(int ac, char *av[]) {
     init_pair(COLOR_GREEN_BLACK, COLOR_GREEN, COLOR_BLACK);     // Green with black background
     init_pair(COLOR_WHITE_BLACK, COLOR_WHITE, COLOR_BLACK);     // White with black background
     init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
-    // The start screen is smaller and centered
+
+    snake_init();           // Initialize player snake values
+    //menu
+    menu();
+    startWin = initscr();
     int yMax, xMax;
     char startGame_text[32];
     char exitGame_text[32];
@@ -191,6 +199,51 @@ int main(int ac, char *av[]) {
     return quit();
 }
 
+// menu
+void menu(){
+    WINDOW * menuwin = initscr();
+    menuwin = newwin(12, 90, maxrow/2-6, maxcol/2-45);//row is 8, col is 30
+    refresh();
+    box(menuwin,0,0);
+    wrefresh(menuwin);
+    mvwprintw(menuwin, 2, 40,"MENU");
+    refresh();
+    mvwprintw(menuwin, 4, 10, "Please choose your preferred snake body size initially(1-9) \t");
+    snakesize_init = wgetch(menuwin);
+    refresh();
+    mvwprintw(menuwin, 6, 10, "Please choose your preferred snake move speed initially");
+    mvwprintw(menuwin, 7, 10,  "(s for slow, m for middle, f for fast)\t\t\t");
+    snake_speed_choice_primary = wgetch(menuwin);
+    refresh();
+    if(snakesize_init-'0'>=1 && snakesize_init-'0' <=9){
+        if(snake_speed_choice_primary == 's'){
+            mvwprintw(menuwin, 9, 10, "Your snake size:%d Your snake speed: slow Press any key to continue...", snakesize_init-'0', snake_speed_choice_primary);
+            refresh();
+            primary_custom = 294000;
+        }else if(snake_speed_choice_primary == 'm'){
+            mvwprintw(menuwin, 9, 10, "Your snake size:%d Your snake speed: middle Press any key to continue...", snakesize_init-'0', snake_speed_choice_primary);
+            refresh();
+            primary_custom = 194000;
+        }else if(snake_speed_choice_primary == 'f'){
+            mvwprintw(menuwin, 9, 10, "Your snake size:%d Your snake speed: fast Press any key to continue...", snakesize_init-'0', snake_speed_choice_primary);
+            refresh();
+            primary_custom = 134000;
+        }else {
+            mvwprintw(menuwin, 9, 10, "Your choice of snake speed is invalid, default value 'fast' will be used");
+            refresh();
+            primary_custom = 134000;
+        }
+    }else{
+        mvwprintw(menuwin, 9, 10, "Your choice of snake size is invalid, default value '5' will be used");
+        refresh();
+        snakesize_init=5+'0';
+        primary_custom = 134000;
+    }
+    wgetch(menuwin);
+    werase(menuwin);
+    wrefresh(menuwin);
+    endwin();
+}
 
 /**
  * Snake game driver
@@ -213,11 +266,9 @@ void startsnakegame() {
 
     // Seed the rand() function using the current system time
     srand(time(NULL));
-
     // Gameplay ending message
     // This is displayed to user upon game completion
     char* endingmsg;
-
     // Initialize the snake head
     // int inputChar, previousChar = 0;
     // Generate an initial snake direction
@@ -237,7 +288,6 @@ void startsnakegame() {
             inputChar = previousChar = KEY_DOWN;    // Snake faces down
             break;
     }
-
     // Generate an initial trophy
     trophy_gen(maxrow, maxcol);
 
@@ -254,8 +304,8 @@ void startsnakegame() {
         mvprintw
         (
             maxrow + 1,             // Bottom of the screen
-            maxcol/2 - 6,           // Centered horizontally
-            "score: %d", snake_get_size()  // Size of snake (score)
+            maxcol/2 - 20,           // Centered horizontally
+            "score: %d              Win when score is 100", snake_get_size()  // Size of snake (score)
         );
 
         // Check to see if user has won
@@ -298,7 +348,6 @@ void startsnakegame() {
             trophy_gen(maxrow, maxcol);
             resize = true;
         } else {
-
             resize = false;
         }
 
@@ -341,7 +390,6 @@ void startsnakegame() {
 
         // Move the snake
         snake_move();
-
         // Print the snake body
         snake_print();
 
@@ -360,6 +408,7 @@ void startsnakegame() {
         unsigned int time_inc;
         switch (speed_level) {
           case 0: // We're in the first 1/3 of the winning Score
+              PRIMARY_DELAY = primary_custom;
               delay = PRIMARY_DELAY;  // Move every 100ms (10/1 second)
               time_inc = PRIMARY_DELAY/1000;
               break;
@@ -422,7 +471,6 @@ void startsnakegame() {
     mvwprintw(win,3, width/2-(strlen(startagain)/2), startagain);
     mvwprintw(win,4, width/2-(strlen(startgame)/2), startgame);
     mvwprintw(win,5, width/2-(strlen(exitstring)/2), exitstring);
-
     while(run){
       int inputChar;
       if (inputType == INPUT_TYPE_GAMEPAD) {
@@ -437,6 +485,7 @@ void startsnakegame() {
                 if (D) debug_log("mysnake::startsnakegame", "S pressed to continue game.");
                 attroff(A_BLINK);  // Turn off the terminal blinking
                 snake_init();
+                menu();
                 startsnakegame();
                 break;
             case 'q':
