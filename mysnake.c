@@ -12,15 +12,17 @@
 
 // Library Includes
 //****************************
+#include <fcntl.h>
 #include <ncurses.h>
+#include <poll.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
-#include <stdbool.h>
-#include <signal.h>
 
 // Project Includes
 //****************************
@@ -40,15 +42,29 @@
 #define COLOR_WHITE_BLACK   2   // White with black background
 #define COLOR_YELLOW_BLACK  3   // Yellow with black background
 
+/* Inputs */
+int     inputType;  // Type of input to expect
+#define FLAG_INPUT_GAMEPAD 'r'
+#define INPUT_TYPE_KEYBOARD 0
+#define INPUT_TYPE_GAMEPAD  1
+
+/* Input Device */
+struct pollfd inputDevices[1];  // Input devices (Just one)
+const int input_size = 16;      // Size of device input
+unsigned char input_data[16];   // Array to hold input data
+#define DEVICE_FILE_GAMEPAD "/dev/input/event0"
+#define DEVICE_FILE_TIMEOUT 5
+
 // Prototype Functions
 //****************************
 bool    checkwon();
 void    initWindowAttributes();
-char*   updateSnakeHead(int);
+char*   updateSnakeHead();
 int     kbhit();
 void    startsnakegame();
 void    sig_int_handler(int);
 int     quit();
+int     getGamepadInput();
 int     get_game_speed();
 
 
@@ -69,7 +85,7 @@ bool    resize;         // Window resizable flag
 int inputChar, previousChar, lastvalidChar = 0;
 
 /* Program Attributes */
-bool  run = true;         // Whether or not to continue running the program
+bool    run = true;     // Whether or not to continue running the program
 
 
 /**
@@ -82,12 +98,27 @@ bool  run = true;         // Whether or not to continue running the program
  * @param ac    - Number of arguments passed to the main function
  * @param av    - Array of additional arguments passed to the game
  */
-int main(int argc, char **argv) {
+int main(int ac, char *av[]) {
     if (D) debug_clear_log();  // Prepare the log file for a new program run
+    // Get and use the gamepad device file for input
+    printf("Program started, waiting 3s\n");
+    usleep(3000000);
+    inputDevices[0].fd = open(DEVICE_FILE_GAMEPAD, O_RDONLY|O_NONBLOCK);
+    // If we couldn't get the device file
+    if (inputDevices[0].fd < 0) {
+        if (D) debug_log("mysnake::main", "Unable to open input device\n");
+    }
+    else {
+        D = false;
+        inputType = INPUT_TYPE_GAMEPAD;     // User wishes to use gamepad
+        memset(input_data, 0, input_size);  // Prepare for input
+        inputDevices[0].events = POLLIN;
+    }
+
     signal(SIGINT, sig_int_handler); // Prevent Ctrl+C presses from quitting.
 
     // Create and initialize windows
-    initWindowAttributes();   // Obtain terminal size and initialize window values
+    initWindowAttributes(); // Obtain terminal size and initialize window values
     startWin = initscr();
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
@@ -99,7 +130,7 @@ int main(int argc, char **argv) {
     {
         // Inform the user and abort
         printf("Your terminal does not support color\n");
-        printf("Aborting %s...\n", argv[0]);
+        printf("Aborting %s...\n", av[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -110,18 +141,33 @@ int main(int argc, char **argv) {
     init_pair(COLOR_YELLOW_BLACK, COLOR_YELLOW, COLOR_BLACK);   // Yellow with black background
     // The start screen is smaller and centered
     int yMax, xMax;
-    char startGame_text[] = "===== Start Game: Press s or S =====";
-    char exitGame_text[] =  "====== Exit Game: Press q or Q =====";
-    yMax=5;
-    xMax = (sizeof(startGame_text)>sizeof(exitGame_text)?sizeof(startGame_text):sizeof(exitGame_text)) +1;
-    startWin = newwin(yMax,xMax,maxrow/2-yMax/2,maxcol/2-xMax/2);
-    box(startWin,0,0);
-    mvwprintw(startWin, yMax/2-1, 1, startGame_text);
-    mvwprintw(startWin, yMax/2+1, 1,exitGame_text);
-
+    char startGame_text[32];
+    char exitGame_text[32];
+    yMax = 5;
+    xMax = 33;
+    if (inputType == INPUT_TYPE_GAMEPAD) {
+        strcpy(startGame_text, "======== Press   Start ========");
+        strcpy(exitGame_text,  "===============================");
+        mvprintw(1, 1, startGame_text);
+        mvprintw(3, 1, exitGame_text);
+    }
+    else {
+        strcpy(startGame_text, "===== Start Game: Press S =====");
+        strcpy(exitGame_text,  "===== Exit Game:  Press Q =====");
+        startWin = newwin(yMax,xMax,maxrow/2-yMax/2,maxcol/2-xMax/2);
+        mvwprintw(startWin, 1, 1, startGame_text);
+        mvwprintw(startWin, 3, 1, exitGame_text);
+    }
+    box(startWin, 0, 0);
     while(run){
         if(D) debug_log("mysnake::main", "Main game loop beginning new iteration.");
-        inputChar = wgetch(startWin);
+        refresh();
+        if (inputType == INPUT_TYPE_GAMEPAD) {
+            inputChar = getGamepadInput();
+        }
+        else {
+            inputChar = wgetch(startWin);
+        }
         switch (inputChar) {
             case 's':
             case 'S':
@@ -162,7 +208,7 @@ void startsnakegame() {
     noecho();               // Disable terminal echoing
     curs_set(FALSE);        // Hide text cursor
     keypad(stdscr, TRUE);   // Utilize keyboard for ncurses input
-    initWindowAttributes();            // Obtain terminal size and initialize window values
+    initWindowAttributes(); // Obtain terminal size and initialize window values
     snake_init();           // Initialize player snake values
 
     // Seed the rand() function using the current system time
@@ -258,22 +304,38 @@ void startsnakegame() {
 
         // Print the snake head
         wattron(win, COLOR_PAIR(COLOR_GREEN_BLACK));    // Change the color of the next drawn object
+        char* snakeHead = updateSnakeHead();
         mvprintw
         (
-            snake_get_curr_i(),               // Current snake head y coord
-            snake_get_curr_j(),               // Current snake head x coord
-            updateSnakeHead(inputChar)   // Snake head
+            snake_get_curr_i(), // Current snake head y coord
+            snake_get_curr_j(), // Current snake head x coord
+            snakeHead           // Snake head
         );
 
         // If the user presses any button
-        if (kbhit()) {
-            previousChar = inputChar;   // Store the previous keypress/direction
-            inputChar = getch();        // Grab the new keypress/snake head
-            // If the new direction is directly opposite of the previous direction, user loses
-            if ((previousChar == KEY_RIGHT && inputChar == KEY_LEFT) || (previousChar == KEY_LEFT && inputChar == KEY_RIGHT) ||
-                (previousChar == KEY_DOWN && inputChar == KEY_UP) || (previousChar == KEY_UP && inputChar == KEY_DOWN)) {
-                endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; // Change ending message appropriately
-                break; // Leave the loop, ending the game
+        if (inputType == INPUT_TYPE_GAMEPAD) {
+            int gamepadInput = getGamepadInput();
+            if (gamepadInput != 'p') {
+                previousChar = inputChar;   // Store the previous keypress/direction
+                inputChar = gamepadInput;   // Grab the new keypress/snake head
+                // If the new direction is directly opposite of the previous direction, user loses
+                if ((previousChar == KEY_RIGHT && inputChar == KEY_LEFT) || (previousChar == KEY_LEFT && inputChar == KEY_RIGHT) ||
+                    (previousChar == KEY_DOWN && inputChar == KEY_UP) || (previousChar == KEY_UP && inputChar == KEY_DOWN)) {
+                    endingmsg = "YOU RAN INTO YOURSELF!"; // Change ending message appropriately
+                    break; // Leave the loop, ending the game
+                }
+            }
+        }
+        else {
+            if (kbhit()) {
+                previousChar = inputChar;   // Store the previous keypress/direction
+                inputChar = getch();        // Grab the new keypress/snake head
+                // If the new direction is directly opposite of the previous direction, user loses
+                if ((previousChar == KEY_RIGHT && inputChar == KEY_LEFT) || (previousChar == KEY_LEFT && inputChar == KEY_RIGHT) ||
+                    (previousChar == KEY_DOWN && inputChar == KEY_UP) || (previousChar == KEY_UP && inputChar == KEY_DOWN)) {
+                    endingmsg = "YOU LOST BECAUSE YOU RAN INTO YOURSELF!"; // Change ending message appropriately
+                    break; // Leave the loop, ending the game
+                }
             }
         }
 
@@ -325,10 +387,18 @@ void startsnakegame() {
     werase(win);                                    // Erase the screen
     endwin();
     refresh();
-    char *startagain = "==== Do you want to start again? ====";
-    char *startgame =  "===== Start Game: Press s or S ======";
-    char *exitstring = "====== Exit Game: Press q or Q ======";
-    int height =7;
+    char startagain[] = "==== Do you want to start again? ====";
+    char startgame[32];
+    char exitstring[32];
+    if (inputType == INPUT_TYPE_GAMEPAD) {
+        strcpy(startgame,  "======== Press   Start ========");
+        strcpy(exitstring, "===============================");
+    }
+    else {
+        strcpy(startgame,  "===== Start Game: Press S =====");
+        strcpy(exitstring, "===== Exit Game:  Press Q =====");
+    }
+    int height = 7;
     int width = strlen(endingmsg)>strlen(startagain)?strlen(endingmsg)+2:strlen(startagain)+2;//get the widest one
     win = newwin(height,width,maxrow/2-height/2,maxcol/2-width/2);//create a new box
     wattron(win, COLOR_PAIR(COLOR_WHITE_BLACK));    // Change the color of the next drawn object
@@ -354,7 +424,13 @@ void startsnakegame() {
     mvwprintw(win,5, width/2-(strlen(exitstring)/2), exitstring);
 
     while(run){
-      char inputChar = wgetch(win);
+      int inputChar;
+      if (inputType == INPUT_TYPE_GAMEPAD) {
+          inputChar = getGamepadInput();
+      }
+      else {
+          inputChar = wgetch(win);
+      }
         switch (inputChar) {
             case 's':
             case 'S':
@@ -400,6 +476,56 @@ int kbhit()
 
 
 /**
+ * Get input from the gamepad.
+ *
+ * @author Joseph Lumpkin
+ */
+int getGamepadInput() {
+    int returnChar = 0x10; // Default input (invalid)
+    memset(input_data, 0, input_size); // Prepare to receive input
+    if (poll(inputDevices, 1, DEVICE_FILE_TIMEOUT) > 0) { // If there was input
+        if(inputDevices[0].revents) {
+            // Read in the input
+            ssize_t r = read(inputDevices[0].fd, input_data, input_size);
+
+            // Find what input was entered
+            if ((unsigned char)input_data[10] == 0x10) {
+                if ((unsigned char)input_data[12] == 0xff) {
+                    returnChar = KEY_LEFT;
+                }
+                else if ((unsigned char)input_data[12] == 0x01) {
+                    returnChar = KEY_RIGHT;
+                }
+            }
+            else if ((unsigned char)input_data[10] == 0x11) {
+                if ((unsigned char)input_data[12] == 0xff) {
+                    returnChar = KEY_UP;
+                }
+                else if ((unsigned char)input_data[12] == 0x01) {
+                    returnChar = KEY_DOWN;
+                }
+            }
+            else if ((unsigned char)input_data[10] == 0x3b) {
+                if ((unsigned char)input_data[12] == 0x01) {
+                    returnChar = 's';
+                }
+            }
+            else if ((unsigned char)input_data[10] == 0x3a) {
+                if ((unsigned char)input_data[12] == 0x01) {
+                    returnChar = 'q';
+                }
+            }
+        }
+    }
+    else {
+        if (D) debug_log("mysnake::getGamepadInput", "Unable to poll input devices\n");
+    }
+
+    return returnChar;
+}
+
+
+/**
  * Check to see if the player has won the game.
  *
  * @author Jiaxin Jiang
@@ -417,7 +543,7 @@ bool checkwon() {
  *
  * @author Rachel Liang
  */
-char* updateSnakeHead(int inputChar) {
+char* updateSnakeHead() {
     char* c;
     switch(inputChar) {
         case KEY_UP:
