@@ -61,7 +61,7 @@ bool checktrophy(int currenti, int currentj) {
  *
  * @author Joseph Lumpkin
  */
-void trophy_gen(int max_row, int max_col)
+void trophy_gen(int max_row, int max_col, int game_speed)
 {
     // Generate a new trophy value
     trophy_value = 1 + rand() % (TROPHY_VALUE_MAX); // Range of 1-9
@@ -96,8 +96,21 @@ void trophy_gen(int max_row, int max_col)
         }
     }
 
-    if (spaceTaken)
-        trophy_gen(max_row, max_col);
+    // Check to ensure the generated trophy is obtainable
+    int distance, xDistance, yDistance; // Distance from the snake head that
+    xDistance = abs(snake_get_curr_j() - trophy_j);
+    yDistance = abs(snake_get_curr_i() - trophy_i);
+    distance = xDistance + yDistance;
+    // Calculate time needed to reach trophy in milliseconds
+    int timeNeeded = distance * (game_speed / 1000);
+    if (trophy_D) {
+      char str[255];
+      sprintf(str, "distance = %d, game_speed = %d, timeNeeded = %d, trophy_expiration = %d", distance, game_speed, timeNeeded, trophy_expiration);
+      debug_log("trophy::trophy_gen", str);
+    }
+    // Ensure the generated trophy is valid
+    if (spaceTaken || timeNeeded > trophy_expiration)
+        trophy_gen(max_row, max_col, game_speed);
 }
 
 // Accessors and Mutators

@@ -35,7 +35,7 @@
 // Defines
 //****************************
 /* Game Times */
-// #define PRIMARY_DELAY       134000  // 134 milliseconds as microseconds
+#define PRIMARY_DELAY       134000  // 134 milliseconds as microseconds
 #define SECONDARY_DELAY     100000  // 100 milliseconds as microseconds
 #define TERTIARY_DELAY      66000   // 66 milliseconds as microseconds
 
@@ -68,14 +68,14 @@ void    sig_int_handler(int);
 int     quit();
 int     getGamepadInput();
 int     get_game_speed();
-void menu();
+void    menu();
 
 // Global Variables
 //****************************
 
 /* Verbose Debug Logging Flag */
 bool D = false;
-int PRIMARY_DELAY;
+
 /* Window Attributes */
 WINDOW *startWin;       // Start screen window
 WINDOW *win;            // ncurses window struct
@@ -105,7 +105,8 @@ int primary_custom;
  * @param av    - Array of additional arguments passed to the game
  */
 int main(int ac, char *av[]) {
-    if (D) debug_clear_log();  // Prepare the log file for a new program run
+    //TODO better input detection to turn off debugging for retroflag
+    debug_clear_log();  // Prepare the log file for a new program run
     // Get and use the gamepad device file for input
     printf("Program started, waiting 3s\n");
     usleep(3000000);
@@ -114,12 +115,12 @@ int main(int ac, char *av[]) {
     if (inputDevices[0].fd < 0) {
         if (D) debug_log("mysnake::main", "Unable to open input device\n");
     }
-    else {
-        D = false;
-        inputType = INPUT_TYPE_GAMEPAD;     // User wishes to use gamepad
-        memset(input_data, 0, input_size);  // Prepare for input
-        inputDevices[0].events = POLLIN;
-    }
+    // else {
+    //     D = false;
+    //     inputType = INPUT_TYPE_GAMEPAD;     // User wishes to use gamepad
+    //     memset(input_data, 0, input_size);  // Prepare for input
+    //     inputDevices[0].events = POLLIN;
+    // }
 
     signal(SIGINT, sig_int_handler); // Prevent Ctrl+C presses from quitting.
     // Create and initialize windows
@@ -219,19 +220,19 @@ void menu(){
         if(snake_speed_choice_primary == 's'){
             mvwprintw(menuwin, 9, 10, "Your snake size:%d Your snake speed: slow Press any key to continue...", snakesize_init-'0', snake_speed_choice_primary);
             refresh();
-            primary_custom = 294000;
+            primary_custom = PRIMARY_DELAY + 160000;
         }else if(snake_speed_choice_primary == 'm'){
             mvwprintw(menuwin, 9, 10, "Your snake size:%d Your snake speed: middle Press any key to continue...", snakesize_init-'0', snake_speed_choice_primary);
             refresh();
-            primary_custom = 194000;
+            primary_custom = PRIMARY_DELAY + 60000;
         }else if(snake_speed_choice_primary == 'f'){
             mvwprintw(menuwin, 9, 10, "Your snake size:%d Your snake speed: fast Press any key to continue...", snakesize_init-'0', snake_speed_choice_primary);
             refresh();
-            primary_custom = 134000;
+            primary_custom = PRIMARY_DELAY;
         }else {
             mvwprintw(menuwin, 9, 10, "Your choice of snake speed is invalid, default value 'fast' will be used");
             refresh();
-            primary_custom = 134000;
+            primary_custom = PRIMARY_DELAY;
         }
     }else{
         mvwprintw(menuwin, 9, 10, "Your choice of snake size is invalid, default value '5' will be used");
@@ -255,7 +256,6 @@ void menu(){
  */
 void startsnakegame() {
     if(D) debug_log("mysnake::startsnakegame", "Starting the snake game.");
-
     win = initscr();        // Initialize game window
     cbreak();               // Break when ctrl ^ c is pressed
     noecho();               // Disable terminal echoing
@@ -289,7 +289,7 @@ void startsnakegame() {
             break;
     }
     // Generate an initial trophy
-    trophy_gen(maxrow, maxcol);
+    trophy_gen(maxrow, maxcol, get_game_speed());
 
     // Main snake game loop
     while (run) {
@@ -304,8 +304,8 @@ void startsnakegame() {
         mvprintw
         (
             maxrow + 1,             // Bottom of the screen
-            maxcol/2 - 20,           // Centered horizontally
-            "score: %d              Win when score is 100", snake_get_size()  // Size of snake (score)
+            maxcol/2 - 20,          // Centered horizontally
+            "Score: %d              Win when score is %d", snake_get_size(), (maxcol + maxrow)  // Size of snake (score)
         );
 
         // Check to see if user has won
@@ -318,7 +318,7 @@ void startsnakegame() {
         if (trophy_get_time() >= trophy_get_expiration()) {
             if (D) debug_log("mysnake::startsnakegame", "trophy_time has reached it's expiration. Generating a new Trophy.");
             // Generate a new trophy
-            trophy_gen(maxrow, maxcol);
+            trophy_gen(maxrow, maxcol, get_game_speed());
             if (D) debug_log("mysnake::startsnakegame", "Finished generating a new trophy.");
         }
 
@@ -345,7 +345,7 @@ void startsnakegame() {
         // Check to see if the snake has run into the trophy
         if (checktrophy(snake_get_curr_i(), snake_get_curr_j())) {
             snake_grow();
-            trophy_gen(maxrow, maxcol);
+            trophy_gen(maxrow, maxcol, get_game_speed());
             resize = true;
         } else {
             resize = false;
@@ -403,34 +403,18 @@ void startsnakegame() {
         refresh();      // Refresh the screen
         if (D) debug_log("mysnake::startsnakegame", "incrementing totcounter.");
         // Get the game speed
-        int speed_level = get_game_speed(); // Level of speed difficulty
-        unsigned int delay;
-        unsigned int time_inc;
-        switch (speed_level) {
-          case 0: // We're in the first 1/3 of the winning Score
-              PRIMARY_DELAY = primary_custom;
-              delay = PRIMARY_DELAY;  // Move every 100ms (10/1 second)
-              time_inc = PRIMARY_DELAY/1000;
-              break;
-          case 1: // We're in the second 1/3 of the winning Score
-              delay = SECONDARY_DELAY;  // Move every 66ms ~(15/1 second)
-              time_inc = SECONDARY_DELAY/1000;
-              break;
-          case 2: // We're in the third 1/3 of the winning Score
-              delay = TERTIARY_DELAY;  // Move every 50ms (20/1 second)
-              time_inc = TERTIARY_DELAY/1000;
-              break;
-        }
+        int speed = get_game_speed(); // Delay of the main game loop
+        unsigned int time_inc = speed / 1000; // How much to add to the trophy
 
         if (D) {
           char str[128];
-          sprintf(str, "Program times calculated, speed_level = %d, delay = %d, time_inc = %d", speed_level, delay, time_inc);
+          sprintf(str, "Program times calculated, speed = %d, time_inc = %d", speed, time_inc);
           debug_log("mysnake::startsnakegame", str);
         }
         // Update the trophy's time spent alive (current time + 100ms)
         trophy_set_time(trophy_get_time() + time_inc);
         if (D) debug_log("mysnake::startsnakegame", "usleep");
-        usleep(delay);  // The speed of the snake game, 10 frames per second.
+        usleep(speed);  // The speed of the snake game, 10 frames per second.
     }
 
     werase(win);                                    // Erase the screen
@@ -514,8 +498,7 @@ void startsnakegame() {
  * Work based on:
  *      https://stackoverflow.com/questions/448944/c-non-blocking-keyboard-input
  */
-int kbhit()
-{
+int kbhit() {
     struct timeval tv = { 0L, 0L };
     fd_set fds;
     FD_ZERO(&fds);
@@ -697,12 +680,12 @@ void sig_int_handler(int sig_num) {
       int score = snake_get_size();       // Current Score
       int winningScore = maxrow + maxcol; // Winning Score
       if (score >= (winningScore / 3) * 2) {
-        return 2;
+        return TERTIARY_DELAY;
       }
       else if (score >= winningScore / 3) {
-        return 1;
+        return SECONDARY_DELAY;
       }
       else {
-        return 0;
+        return primary_custom;
       }
   }
