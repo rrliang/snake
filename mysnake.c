@@ -23,14 +23,12 @@
 #include <sys/ioctl.h>
 #include <time.h>
 #include <unistd.h>
-#include <stdbool.h>
-#include <signal.h>
+
 // Project Includes
 //****************************
 #include "debug/debug.h"
 #include "snake/snake.h"
 #include "trophy/trophy.h"
-// #include "menu/menu.h"
 
 // Defines
 //****************************
@@ -46,7 +44,6 @@
 
 /* Inputs */
 int     inputType;  // Type of input to expect
-#define FLAG_INPUT_GAMEPAD 'r'
 #define INPUT_TYPE_KEYBOARD 0
 #define INPUT_TYPE_GAMEPAD  1
 
@@ -105,18 +102,17 @@ int primary_custom;
  * @param av    - Array of additional arguments passed to the game
  */
 int main(int ac, char *av[]) {
-    //TODO better input detection to turn off debugging for retroflag
-    debug_clear_log();  // Prepare the log file for a new program run
+    if (D) debug_clear_log();  // Prepare the log file for a new program run
     // Get and use the gamepad device file for input
-    printf("Program started, waiting 3s\n");
-    usleep(3000000);
-    inputDevices[0].fd = open(DEVICE_FILE_GAMEPAD, O_RDONLY|O_NONBLOCK);
-    // If we couldn't get the device file
-    if (inputDevices[0].fd < 0) {
-        if (D) debug_log("mysnake::main", "Unable to open input device\n");
-    }
+    // printf("Program started, waiting 3s\n");
+    // usleep(3000000);
+    //
+    // inputDevices[0].fd = open(DEVICE_FILE_GAMEPAD, O_RDONLY|O_NONBLOCK);
+    // // If we couldn't get the device file
+    // if (inputDevices[0].fd < 0) {
+    //     if (D) debug_log("mysnake::main", "Unable to open input device\n");
+    // }
     // else {
-    //     D = false;
     //     inputType = INPUT_TYPE_GAMEPAD;     // User wishes to use gamepad
     //     memset(input_data, 0, input_size);  // Prepare for input
     //     inputDevices[0].events = POLLIN;
@@ -305,7 +301,7 @@ void startsnakegame() {
         (
             maxrow + 1,             // Bottom of the screen
             maxcol/2 - 20,          // Centered horizontally
-            "Score: %d              Win when score is %d", snake_get_size(), (maxcol + maxrow)  // Size of snake (score)
+            " Score: %d    Win when score is %d", snake_get_size(), (maxcol + maxrow)  // Size of snake (score)
         );
 
         // Check to see if user has won
@@ -544,7 +540,7 @@ int getGamepadInput() {
             }
             else if ((unsigned char)input_data[10] == 0x3a) {
                 if ((unsigned char)input_data[12] == 0x01) {
-                    returnChar = 'q';
+                    returnChar = 's';
                 }
             }
         }
